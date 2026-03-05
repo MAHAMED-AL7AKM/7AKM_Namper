@@ -1,0 +1,510 @@
+here<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أرقام AKM</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <style>
+        .page { display: none; }
+        .page.active { display: block; }
+    </style>
+</head>
+<body class="bg-gray-100">
+
+<!-- ==================== شريط التنقل ==================== -->
+<nav class="bg-gray-800 text-white p-4">
+    <div class="container mx-auto flex justify-between items-center">
+        <a href="#" onclick="showPage('home')" class="text-xl font-bold">AKM Numbers</a>
+        <div>
+            <a href="#" onclick="showPage('home')" class="mx-2">الرئيسية</a>
+            <span id="navLinks"></span>
+            <span id="userInfo"></span>
+        </div>
+    </div>
+</nav>
+
+<!-- ==================== الصفحات ==================== -->
+<main class="container mx-auto p-4">
+
+    <!-- الصفحة الرئيسية -->
+    <div id="homePage" class="page active">
+        <h1 class="text-3xl font-bold mb-6">أهلاً بك في AKM Numbers</h1>
+        
+        <!-- فلتر المنصات -->
+        <select id="platformFilter" onchange="loadNumbers()" class="mb-4 p-2 border">
+            <option value="">كل المنصات</option>
+            <option value="WhatsApp">واتساب</option>
+            <option value="Telegram">تليجرام</option>
+            <option value="TikTok">تيك توك</option>
+        </select>
+
+        <!-- المزادات النشطة -->
+        <h2 class="text-2xl font-semibold mb-2">المزادات النشطة</h2>
+        <div id="auctionsList" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"></div>
+
+        <!-- الأرقام المتاحة -->
+        <h2 class="text-2xl font-semibold mb-2">الأرقام المتاحة</h2>
+        <div id="numbersList" class="grid grid-cols-1 md:grid-cols-4 gap-4"></div>
+    </div>
+
+    <!-- صفحة تسجيل الدخول -->
+    <div id="loginPage" class="page max-w-md mx-auto">
+        <h2 class="text-2xl font-bold mb-4">تسجيل الدخول</h2>
+        <div id="loginError" class="text-red-500 mb-2"></div>
+        <form onsubmit="login(event)">
+            <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" class="w-full p-2 border mb-2" required>
+            <input type="password" id="loginPassword" placeholder="كلمة المرور" class="w-full p-2 border mb-2" required>
+            <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded">دخول</button>
+        </form>
+        <p class="mt-4"><a href="#" onclick="showPage('resetRequest')" class="text-blue-500">نسيت كلمة المرور؟</a></p>
+        <p class="mt-2">ليس لديك حساب؟ <a href="#" onclick="showPage('register')" class="text-blue-500">سجل الآن</a></p>
+    </div>
+
+    <!-- صفحة التسجيل -->
+    <div id="registerPage" class="page max-w-md mx-auto">
+        <h2 class="text-2xl font-bold mb-4">إنشاء حساب جديد</h2>
+        <div id="registerError" class="text-red-500 mb-2"></div>
+        <form onsubmit="register(event)">
+            <input type="text" id="regName" placeholder="الاسم الكامل" class="w-full p-2 border mb-2" required>
+            <input type="email" id="regEmail" placeholder="البريد الإلكتروني" class="w-full p-2 border mb-2" required>
+            <input type="password" id="regPassword" placeholder="كلمة المرور" class="w-full p-2 border mb-2" required>
+            <input type="tel" id="regPhone" placeholder="رقم التواصل" class="w-full p-2 border mb-2" required>
+            <button type="submit" class="w-full bg-green-600 text-white p-2 rounded">تسجيل</button>
+        </form>
+        <p class="mt-4"><a href="#" onclick="showPage('login')" class="text-blue-500">لديك حساب؟ سجل دخول</a></p>
+    </div>
+
+    <!-- صفحة نشر رقم -->
+    <div id="postPage" class="page max-w-md mx-auto">
+        <h2 class="text-2xl font-bold mb-4">نشر رقم جديد</h2>
+        <form onsubmit="postNumber(event)">
+            <input type="text" id="postNumber" placeholder="الرقم" class="w-full p-2 border mb-2" required>
+            <input type="text" id="postType" placeholder="نوع الرقم (مميز، عادي)" class="w-full p-2 border mb-2" required>
+            <select id="postPlatform" class="w-full p-2 border mb-2">
+                <option value="WhatsApp">واتساب</option>
+                <option value="Telegram">تليجرام</option>
+                <option value="TikTok">تيك توك</option>
+            </select>
+            <textarea id="postDescription" placeholder="وصف الرقم" class="w-full p-2 border mb-2" rows="3"></textarea>
+            <div class="flex mb-2">
+                <label class="mr-4"><input type="radio" name="saleType" value="sale" checked> للبيع</label>
+                <label><input type="radio" name="saleType" value="exchange"> للتبديل</label>
+            </div>
+            <div id="priceField">
+                <input type="number" id="postPrice" placeholder="السعر" class="w-full p-2 border mb-2">
+            </div>
+            <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded">نشر</button>
+        </form>
+    </div>
+
+    <!-- صفحة طلب استعادة كلمة المرور -->
+    <div id="resetRequestPage" class="page max-w-md mx-auto">
+        <h2 class="text-2xl font-bold mb-4">طلب استعادة كلمة المرور</h2>
+        <div id="resetMessage" class="mb-2 text-green-600"></div>
+        <form onsubmit="resetRequest(event)">
+            <input type="email" id="resetEmail" placeholder="البريد الإلكتروني" class="w-full p-2 border mb-2" required>
+            <button type="submit" class="w-full bg-blue-600 text-white p-2 rounded">إرسال الطلب</button>
+        </form>
+    </div>
+
+    <!-- صفحة المزاد -->
+    <div id="auctionPage" class="page">
+        <h1 id="auctionTitle" class="text-3xl font-bold mb-4"></h1>
+        <div id="auctionDetails" class="border p-4 mb-4"></div>
+        <h2 class="text-2xl font-semibold mb-2">تقديم عرض</h2>
+        <div id="bidError" class="text-red-500 mb-2"></div>
+        <form onsubmit="placeBid(event)" class="mb-4">
+            <input type="number" id="bidAmount" placeholder="مبلغ العرض" class="border p-2 ml-2 rounded" required>
+            <button type="submit" class="bg-blue-600 text-white p-2 rounded">تقديم</button>
+        </form>
+        <h2 class="text-2xl font-semibold mb-2">جميع العروض</h2>
+        <ul id="bidsList"></ul>
+    </div>
+
+    <!-- لوحة تحكم المشرف -->
+    <div id="adminPage" class="page">
+        <h1 class="text-3xl font-bold mb-6">لوحة تحكم المشرف</h1>
+        
+        <h2 class="text-2xl font-semibold mb-2">طلبات استعادة كلمة المرور</h2>
+        <div id="resetRequestsList" class="mb-8"></div>
+
+        <h2 class="text-2xl font-semibold mb-2">منشورات بانتظار الموافقة</h2>
+        <div id="pendingNumbersList" class="mb-8"></div>
+
+        <h2 class="text-2xl font-semibold mb-2">المزادات</h2>
+        <form onsubmit="addAuction(event)" class="mb-4 p-4 border">
+            <h3 class="font-bold mb-2">إضافة مزاد جديد</h3>
+            <input type="text" id="auctionTitleInput" placeholder="عنوان المزاد" class="w-full p-2 border mb-2" required>
+            <input type="text" id="auctionNumber" placeholder="الرقم" class="w-full p-2 border mb-2" required>
+            <input type="number" id="auctionStartingBid" placeholder="السعر المبدئي" class="w-full p-2 border mb-2" required>
+            <input type="datetime-local" id="auctionEndTime" class="w-full p-2 border mb-2" required>
+            <button type="submit" class="bg-blue-600 text-white p-2 rounded">إضافة</button>
+        </form>
+        <div id="auctionsListAdmin" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8"></div>
+
+        <h2 class="text-2xl font-semibold mb-2">جميع المستخدمين</h2>
+        <div id="usersList" class="overflow-x-auto"></div>
+    </div>
+</main>
+
+<!-- ==================== التذييل ==================== -->
+<footer class="bg-gray-800 text-white text-center p-4 mt-8">
+    جميع الحقوق محفوظة &copy; 2026 AKM Numbers
+</footer>
+
+<!-- ==================== Firebase Configuration ==================== -->
+<script>
+    // تهيئة Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyAZIdGz-GWzEKfAaLu2mEqle54NpJE7lmg",
+        authDomain: "akmnumbers.firebaseapp.com",
+        projectId: "akmnumbers",
+        storageBucket: "akmnumbers.firebasestorage.app",
+        messagingSenderId: "600674602065",
+        appId: "1:600674602065:web:2ffc145b783190672e7c70",
+        measurementId: "G-F52B2FQTNH"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.firestore();
+
+    // بيانات المالك
+    const OWNER_EMAIL = "mohamed_el7akm@akmnumbers.com";
+    const OWNER_PASSWORD = "G7#vQ2mL9@xT4pZ!cR8yH3wD";
+
+    // المتغيرات العامة
+    let currentUser = null;
+    let currentUserRole = 'user';
+    let currentAuctionId = null;
+
+    // ==================== إدارة الصفحات ====================
+    function showPage(pageName) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        if (pageName === 'home') document.getElementById('homePage').classList.add('active');
+        else if (pageName === 'login') document.getElementById('loginPage').classList.add('active');
+        else if (pageName === 'register') document.getElementById('registerPage').classList.add('active');
+        else if (pageName === 'post') document.getElementById('postPage').classList.add('active');
+        else if (pageName === 'resetRequest') document.getElementById('resetRequestPage').classList.add('active');
+        else if (pageName === 'auction') document.getElementById('auctionPage').classList.add('active');
+        else if (pageName === 'admin') document.getElementById('adminPage').classList.add('active');
+    }
+
+    // ==================== تحديث واجهة المستخدم حسب حالة المصادقة ====================
+    auth.onAuthStateChanged(async (user) => {
+        currentUser = user;
+        const navLinks = document.getElementById('navLinks');
+        const userInfo = document.getElementById('userInfo');
+        if (user) {
+            // جلب دور المستخدم
+            const userDoc = await db.collection('users').doc(user.uid).get();
+            currentUserRole = userDoc.exists ? userDoc.data().role : 'user';
+            
+            let links = '';
+            if (currentUserRole === 'admin') {
+                links += '<a href="#" onclick="showPage(\'admin\')" class="mx-2">لوحة التحكم</a>';
+            }
+            links += '<a href="#" onclick="showPage(\'post\')" class="mx-2">نشر رقم</a>';
+            navLinks.innerHTML = links;
+            
+            userInfo.innerHTML = `<span class="mx-2">مرحباً ${user.email}</span>
+                                  <button onclick="logout()" class="bg-red-500 px-3 py-1 rounded">تسجيل خروج</button>`;
+        } else {
+            navLinks.innerHTML = '';
+            userInfo.innerHTML = `<a href="#" onclick="showPage('login')" class="mx-2">دخول</a>
+                                  <a href="#" onclick="showPage('register')" class="mx-2">تسجيل</a>`;
+            currentUserRole = 'user';
+        }
+        // تحميل البيانات حسب الصفحة النشطة
+        if (document.getElementById('homePage').classList.contains('active')) {
+            loadNumbers();
+            loadAuctions();
+        } else if (document.getElementById('adminPage').classList.contains('active') && currentUserRole === 'admin') {
+            loadAdminData();
+        }
+    });
+
+    // ==================== تسجيل الخروج ====================
+    function logout() {
+        auth.signOut().then(() => showPage('home'));
+    }
+
+    // ==================== تسجيل الدخول (مع إنشاء حساب المالك تلقائياً) ====================
+    async function login(e) {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        try {
+            let userCredential;
+            try {
+                userCredential = await auth.signInWithEmailAndPassword(email, password);
+            } catch (error) {
+                if (error.code === 'auth/user-not-found' && email === OWNER_EMAIL && password === OWNER_PASSWORD) {
+                    userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    await db.collection('users').doc(userCredential.user.uid).set({
+                        name: 'Mohamed El7akm',
+                        email: email,
+                        phone: '',
+                        role: 'admin',
+                        createdAt: new Date()
+                    });
+                } else {
+                    throw error;
+                }
+            }
+            showPage('home');
+        } catch (error) {
+            document.getElementById('loginError').innerText = error.message;
+        }
+    }
+
+    // ==================== تسجيل مستخدم عادي ====================
+    async function register(e) {
+        e.preventDefault();
+        const name = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPassword').value;
+        const phone = document.getElementById('regPhone').value;
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            await db.collection('users').doc(userCredential.user.uid).set({
+                name, email, phone, role: 'user', createdAt: new Date()
+            });
+            showPage('home');
+        } catch (error) {
+            document.getElementById('registerError').innerText = error.message;
+        }
+    }
+
+    // ==================== نشر رقم ====================
+    async function postNumber(e) {
+        e.preventDefault();
+        if (!currentUser) return alert('يجب تسجيل الدخول أولاً');
+        const number = document.getElementById('postNumber').value;
+        const type = document.getElementById('postType').value;
+        const platform = document.getElementById('postPlatform').value;
+        const description = document.getElementById('postDescription').value;
+        const isForSale = document.querySelector('input[name="saleType"]:checked').value === 'sale';
+        const price = isForSale ? document.getElementById('postPrice').value : 0;
+        try {
+            await db.collection('numbers').add({
+                number, type, platform, description, price: Number(price), isForSale,
+                userId: currentUser.uid, status: 'pending', createdByAdmin: false, createdAt: new Date()
+            });
+            alert('تم إرسال الرقم بنجاح، بانتظار موافقة الإدارة');
+            showPage('home');
+        } catch (error) {
+            alert(error.message);
+        }
+    }
+
+    // ==================== تحميل الأرقام المقبولة ====================
+    async function loadNumbers() {
+        const filter = document.getElementById('platformFilter').value;
+        let query = db.collection('numbers').where('status', '==', 'approved');
+        if (filter) query = query.where('platform', '==', filter);
+        const snapshot = await query.get();
+        const container = document.getElementById('numbersList');
+        container.innerHTML = '';
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            container.innerHTML += `
+                <div class="border p-4 rounded shadow">
+                    <p>الرقم: ${data.number}</p>
+                    <p>المنصة: ${data.platform}</p>
+                    <p>النوع: ${data.type}</p>
+                    <p>${data.isForSale ? 'السعر: ' + data.price : 'للتبديل'}</p>
+                    <p class="text-sm text-gray-600">${data.description}</p>
+                </div>
+            `;
+        });
+    }
+
+    // ==================== تحميل المزادات النشطة ====================
+    async function loadAuctions() {
+        const snapshot = await db.collection('auctions').where('status', '==', 'active').get();
+        const container = document.getElementById('auctionsList');
+        container.innerHTML = '';
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            container.innerHTML += `
+                <div class="border p-4 rounded shadow">
+                    <h3 class="font-bold">${data.title}</h3>
+                    <p>الرقم: ${data.number}</p>
+                    <p>أعلى عرض: ${data.currentBid || data.startingBid}</p>
+                    <a href="#" onclick="viewAuction('${doc.id}')" class="text-blue-500">شارك في المزاد</a>
+                </div>
+            `;
+        });
+    }
+
+    // ==================== عرض صفحة مزاد معين ====================
+    async function viewAuction(auctionId) {
+        currentAuctionId = auctionId;
+        showPage('auction');
+        const docSnap = await db.collection('auctions').doc(auctionId).get();
+        const data = docSnap.data();
+        document.getElementById('auctionTitle').innerText = data.title;
+        document.getElementById('auctionDetails').innerHTML = `
+            <p>الرقم: ${data.number}</p>
+            <p>السعر المبدئي: ${data.startingBid}</p>
+            <p>أعلى عرض حالي: ${data.currentBid}</p>
+            <p>وقت الانتهاء: ${new Date(data.endTime).toLocaleString()}</p>
+            <p>الحالة: ${data.status}</p>
+        `;
+        // تحميل العروض
+        loadBids(auctionId);
+    }
+
+    async function loadBids(auctionId) {
+        const snapshot = await db.collection('auctions').doc(auctionId).collection('bids').orderBy('bidAmount', 'desc').get();
+        const list = document.getElementById('bidsList');
+        list.innerHTML = '';
+        snapshot.forEach(doc => {
+            const bid = doc.data();
+            list.innerHTML += `<li class="border-b py-2">${bid.bidAmount} - ${new Date(bid.timestamp?.toDate()).toLocaleString()}</li>`;
+        });
+    }
+
+    async function placeBid(e) {
+        e.preventDefault();
+        if (!currentUser) return document.getElementById('bidError').innerText = 'يجب تسجيل الدخول أولاً';
+        const amount = Number(document.getElementById('bidAmount').value);
+        const auctionRef = db.collection('auctions').doc(currentAuctionId);
+        const auction = await auctionRef.get();
+        const data = auction.data();
+        if (amount <= (data.currentBid || data.startingBid)) {
+            return document.getElementById('bidError').innerText = `يجب أن يكون العرض أكبر من ${data.currentBid || data.startingBid}`;
+        }
+        await auctionRef.collection('bids').add({
+            userId: currentUser.uid, bidAmount: amount, timestamp: new Date()
+        });
+        await auctionRef.update({ currentBid: amount });
+        document.getElementById('bidAmount').value = '';
+        loadBids(currentAuctionId);
+    }
+
+    // ==================== لوحة تحكم المشرف ====================
+    async function loadAdminData() {
+        // طلبات استعادة كلمة المرور
+        const resetSnap = await db.collection('resetRequests').where('status', '==', 'pending').get();
+        let resetHtml = '<table class="w-full border"><thead><tr><th>البريد</th><th>الجهاز</th><th>إجراء</th></tr></thead><tbody>';
+        resetSnap.forEach(doc => {
+            const data = doc.data();
+            resetHtml += `<tr><td>${data.email}</td><td>${data.deviceInfo}</td><td><button onclick="approveReset('${doc.id}', '${data.email}')" class="bg-green-600 text-white px-2 py-1 rounded">موافقة</button></td></tr>`;
+        });
+        resetHtml += '</tbody></table>';
+        document.getElementById('resetRequestsList').innerHTML = resetHtml;
+
+        // المنشورات المعلقة
+        const pendingSnap = await db.collection('numbers').where('status', '==', 'pending').get();
+        let pendingHtml = '';
+        pendingSnap.forEach(doc => {
+            const data = doc.data();
+            pendingHtml += `
+                <div class="border p-4 mb-2">
+                    <p>الرقم: ${data.number} | المنصة: ${data.platform} | النوع: ${data.type}</p>
+                    <p>الوصف: ${data.description}</p>
+                    <p>المستخدم: ${data.userId}</p>
+                    <button onclick="approveNumber('${doc.id}')" class="bg-green-500 text-white px-3 py-1 rounded ml-2">موافقة</button>
+                    <button onclick="rejectNumber('${doc.id}')" class="bg-red-500 text-white px-3 py-1 rounded">رفض</button>
+                </div>
+            `;
+        });
+        document.getElementById('pendingNumbersList').innerHTML = pendingHtml;
+
+        // المزادات
+        loadAuctionsAdmin();
+
+        // المستخدمين
+        const usersSnap = await db.collection('users').get();
+        let usersHtml = '<table class="w-full border"><thead><tr><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>الدور</th><th>تغيير الصلاحية</th></tr></thead><tbody>';
+        usersSnap.forEach(doc => {
+            const data = doc.data();
+            usersHtml += `<tr><td>${data.name}</td><td>${data.email}</td><td>${data.phone}</td><td>${data.role}</td><td><button onclick="toggleRole('${doc.id}', '${data.role}')" class="bg-yellow-500 text-white px-2 py-1 rounded">${data.role === 'admin' ? 'إزالة صلاحية' : 'ترقية'}</button></td></tr>`;
+        });
+        usersHtml += '</tbody></table>';
+        document.getElementById('usersList').innerHTML = usersHtml;
+    }
+
+    async function loadAuctionsAdmin() {
+        const snap = await db.collection('auctions').get();
+        let html = '';
+        snap.forEach(doc => {
+            const data = doc.data();
+            html += `
+                <div class="border p-4">
+                    <h3 class="font-bold">${data.title}</h3>
+                    <p>الرقم: ${data.number}</p>
+                    <p>أعلى عرض: ${data.currentBid}</p>
+                    <p>الحالة: ${data.status}</p>
+                    <button onclick="deleteAuction('${doc.id}')" class="bg-red-500 text-white px-2 py-1 rounded mt-2">حذف</button>
+                </div>
+            `;
+        });
+        document.getElementById('auctionsListAdmin').innerHTML = html;
+    }
+
+    async function approveNumber(id) {
+        await db.collection('numbers').doc(id).update({ status: 'approved', approvedAt: new Date() });
+        loadAdminData();
+    }
+
+    async function rejectNumber(id) {
+        await db.collection('numbers').doc(id).delete();
+        loadAdminData();
+    }
+
+    async function approveReset(id, email) {
+        await db.collection('resetRequests').doc(id).update({ status: 'approved' });
+        alert(`تمت الموافقة على طلب استعادة كلمة المرور للبريد ${email}`);
+        loadAdminData();
+    }
+
+    async function addAuction(e) {
+        e.preventDefault();
+        const title = document.getElementById('auctionTitleInput').value;
+        const number = document.getElementById('auctionNumber').value;
+        const startingBid = Number(document.getElementById('auctionStartingBid').value);
+        const endTime = document.getElementById('auctionEndTime').value;
+        await db.collection('auctions').add({
+            title, number, startingBid, currentBid: startingBid, endTime, status: 'active', createdAt: new Date()
+        });
+        loadAdminData();
+    }
+
+    async function deleteAuction(id) {
+        if (confirm('هل أنت متأكد؟')) {
+            await db.collection('auctions').doc(id).delete();
+            loadAdminData();
+        }
+    }
+
+    async function toggleRole(userId, currentRole) {
+        const newRole = currentRole === 'admin' ? 'user' : 'admin';
+        await db.collection('users').doc(userId).update({ role: newRole });
+        loadAdminData();
+    }
+
+    // ==================== طلب استعادة كلمة المرور ====================
+    async function resetRequest(e) {
+        e.preventDefault();
+        const email = document.getElementById('resetEmail').value;
+        await db.collection('resetRequests').add({
+            email, deviceInfo: navigator.userAgent, status: 'pending', requestedAt: new Date()
+        });
+        document.getElementById('resetMessage').innerText = 'تم إرسال الطلب، سيتم مراجعته من قبل الإدارة قريباً.';
+    }
+
+    // تحميل البيانات عند فتح الصفحة الرئيسية
+    window.onload = function() {
+        loadNumbers();
+        loadAuctions();
+    };
+</script>
+</body>
+</html>
