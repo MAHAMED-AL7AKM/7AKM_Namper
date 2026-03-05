@@ -99,14 +99,17 @@
         <p class="mt-2 text-center">
             <a href="#" onclick="showPage('resetRequest')" class="text-indigo-600">نسيت كلمة المرور؟</a>
         </p>
-        <!-- رسالة تذكير للمالك -->
-        <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
-            <i class="fas fa-info-circle ml-1"></i> لتسجيل الدخول كمالك، استخدم:
-            <br><span class="font-mono">mohamed_el7akm@akmnumbers.com</span>
+        <!-- زر إنشاء المالك (يظهر فقط إذا لم يكن هناك أي مستخدم) -->
+        <div id="ownerSetupContainer" class="mt-4 hidden">
+            <hr class="my-4">
+            <p class="text-sm text-gray-600 mb-2">لأول مرة فقط: قم بإنشاء حساب المالك</p>
+            <button onclick="setupOwner()" class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 font-semibold">
+                <i class="fas fa-crown ml-2"></i> إنشاء حساب المالك
+            </button>
         </div>
     </div>
 
-    <!-- صفحة التسجيل -->
+    <!-- صفحة التسجيل (للمستخدمين العاديين) -->
     <div id="registerPage" class="page max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
             <i class="fas fa-user-plus text-green-600"></i> إنشاء حساب جديد (مستخدم عادي)
@@ -260,28 +263,64 @@
         projectId: "akmnumbers",
         storageBucket: "akmnumbers.firebasestorage.app",
         messagingSenderId: "600674602065",
-        appId: "1:600674602065:web:2ffc145b783190672e7c70",
-        measurementId: "G-F52B2FQTNH"
+        appId: "1:600674602065:web:2ffc145b783190672e7c70"
     };
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // ---------- بيانات المالك ----------
-    const OWNER_EMAIL = "mohamed_el7akm@akmnumbers.com";
-    const OWNER_PASSWORD = "G7#vQ2mL9@xT4pZ!cR8yH3wD";
-
     let currentUser = null;
     let currentUserRole = 'user';
     let currentAuctionId = null;
 
-    // دالة إظهار الصفحات
+    // ---------- التحقق من وجود مستخدمين (لإظهار زر إنشاء المالك) ----------
+    async function checkForExistingUsers() {
+        const snapshot = await db.collection('users').limit(1).get();
+        const container = document.getElementById('ownerSetupContainer');
+        if (snapshot.empty) {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+
+    // ---------- إنشاء حساب المالك ----------
+    async function setupOwner() {
+        const email = prompt("أدخل البريد الإلكتروني للمالك:", "mohamed_el7akm@akmnumbers.com");
+        if (!email) return;
+        const password = prompt("أدخل كلمة المرور للمالك:", "G7#vQ2mL9@xT4pZ!cR8yH3wD");
+        if (!password) return;
+        const name = prompt("أدخل اسم المالك:", "Mohamed El7akm");
+        if (!name) return;
+
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            await db.collection('users').doc(userCredential.user.uid).set({
+                name: name,
+                email: email,
+                phone: "",
+                role: "admin",
+                createdAt: new Date()
+            });
+            alert("✅ تم إنشاء حساب المالك بنجاح! يمكنك الآن تسجيل الدخول.");
+            checkForExistingUsers();
+        } catch (error) {
+            alert("❌ خطأ: " + error.message);
+        }
+    }
+
+    // ---------- إظهار الصفحات ----------
     function showPage(pageName) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageName + 'Page').classList.add('active');
+        if (pageName === 'login') {
+            checkForExistingUsers();
+        } else if (pageName === 'admin' && currentUserRole === 'admin') {
+            loadAdminData();
+        }
     }
 
-    // مراقب حالة المصادقة
+    // ---------- مراقب حالة المصادقة ----------
     auth.onAuthStateChanged(async (user) => {
         currentUser = user;
         const navLinks = document.getElementById('navLinks');
@@ -321,12 +360,12 @@
         }
     });
 
-    // تسجيل الخروج
+    // ---------- تسجيل الخروج ----------
     function logout() {
         auth.signOut().then(() => showPage('home'));
     }
 
-    // ---------- تسجيل الدخول (مع إنشاء المالك تلقائياً) ----------
+    // ---------- تسجيل الدخول العادي ----------
     async function login(e) {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
@@ -335,35 +374,7 @@
         errorDiv.classList.add('hidden');
 
         try {
-            let userCredential;
-            try {
-                // محاولة تسجيل الدخول
-                userCredential = await auth.signInWithEmailAndPassword(email, password);
-                
-                // إذا كان البريد هو بريد المالك، تأكد من أن صلاحيته admin
-                if (email === OWNER_EMAIL && password === OWNER_PASSWORD) {
-                    const userRef = db.collection('users').doc(userCredential.user.uid);
-                    const userDoc = await userRef.get();
-                    if (userDoc.exists && userDoc.data().role !== 'admin') {
-                        await userRef.update({ role: 'admin' });
-                        console.log('تمت ترقية المالك إلى admin');
-                    }
-                }
-            } catch (signInError) {
-                // إذا كان المستخدم غير موجود وكانت بيانات المالك صحيحة، قم بإنشائه كـ admin
-                if (signInError.code === 'auth/user-not-found' && email === OWNER_EMAIL && password === OWNER_PASSWORD) {
-                    userCredential = await auth.createUserWithEmailAndPassword(email, password);
-                    await db.collection('users').doc(userCredential.user.uid).set({
-                        name: 'Mohamed El7akm',
-                        email: email,
-                        phone: '',
-                        role: 'admin',
-                        createdAt: new Date()
-                    });
-                } else {
-                    throw signInError;
-                }
-            }
+            await auth.signInWithEmailAndPassword(email, password);
             showPage('home');
         } catch (error) {
             errorDiv.innerText = error.message;
@@ -531,60 +542,78 @@
     async function loadAdminData() {
         // طلبات استعادة كلمة المرور
         const resetSnap = await db.collection('resetRequests').where('status', '==', 'pending').get();
-        let resetHtml = '<table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-right">البريد</th><th class="px-6 py-3 text-right">الجهاز</th><th class="px-6 py-3 text-right">إجراء</th></tr></thead><tbody>';
-        resetSnap.forEach(doc => {
-            const data = doc.data();
-            resetHtml += `<tr><td class="px-6 py-4">${data.email}</td><td class="px-6 py-4">${data.deviceInfo.substring(0,30)}...</td><td class="px-6 py-4"><button onclick="approveReset('${doc.id}', '${data.email}')" class="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600">موافقة</button></td></tr>`;
-        });
-        resetHtml += '</tbody></table>';
-        document.getElementById('resetRequestsList').innerHTML = resetHtml || '<p>لا توجد طلبات</p>';
+        let resetHtml = '';
+        if (resetSnap.empty) {
+            resetHtml = '<p class="text-gray-500 p-4">لا توجد طلبات استعادة كلمة مرور</p>';
+        } else {
+            resetHtml = '<table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-right">البريد</th><th class="px-6 py-3 text-right">الجهاز</th><th class="px-6 py-3 text-right">إجراء</th></tr></thead><tbody>';
+            resetSnap.forEach(doc => {
+                const data = doc.data();
+                resetHtml += `<tr><td class="px-6 py-4">${data.email}</td><td class="px-6 py-4">${data.deviceInfo.substring(0,30)}...</td><td class="px-6 py-4"><button onclick="approveReset('${doc.id}', '${data.email}')" class="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600">موافقة</button></td></tr>`;
+            });
+            resetHtml += '</tbody></table>';
+        }
+        document.getElementById('resetRequestsList').innerHTML = resetHtml;
 
         // المنشورات المعلقة
         const pendingSnap = await db.collection('numbers').where('status', '==', 'pending').get();
-        let pendingHtml = '';
-        pendingSnap.forEach(doc => {
-            const data = doc.data();
-            pendingHtml += `
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-wrap justify-between items-center">
-                    <div>
-                        <p><span class="font-semibold">الرقم:</span> ${data.number} | <span class="font-semibold">المنصة:</span> ${data.platform} | <span class="font-semibold">النوع:</span> ${data.type}</p>
-                        <p class="text-sm">${data.description}</p>
+        if (pendingSnap.empty) {
+            document.getElementById('pendingNumbersList').innerHTML = '<p class="text-gray-500 p-4">لا توجد منشورات معلقة</p>';
+        } else {
+            let pendingHtml = '';
+            pendingSnap.forEach(doc => {
+                const data = doc.data();
+                pendingHtml += `
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-wrap justify-between items-center">
+                        <div>
+                            <p><span class="font-semibold">الرقم:</span> ${data.number} | <span class="font-semibold">المنصة:</span> ${data.platform} | <span class="font-semibold">النوع:</span> ${data.type}</p>
+                            <p class="text-sm">${data.description}</p>
+                            <p class="text-xs text-gray-400">المستخدم: ${data.userId}</p>
+                        </div>
+                        <div class="flex gap-2 mt-2 sm:mt-0">
+                            <button onclick="approveNumber('${doc.id}')" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">موافقة</button>
+                            <button onclick="rejectNumber('${doc.id}')" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">رفض</button>
+                        </div>
                     </div>
-                    <div class="flex gap-2 mt-2 sm:mt-0">
-                        <button onclick="approveNumber('${doc.id}')" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">موافقة</button>
-                        <button onclick="rejectNumber('${doc.id}')" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">رفض</button>
-                    </div>
-                </div>
-            `;
-        });
-        document.getElementById('pendingNumbersList').innerHTML = pendingHtml || '<p>لا توجد منشورات معلقة</p>';
+                `;
+            });
+            document.getElementById('pendingNumbersList').innerHTML = pendingHtml;
+        }
 
-        // المزادات
+        // المزادات (جميعها)
         const auctionsSnap = await db.collection('auctions').get();
-        let auctionsHtml = '';
-        auctionsSnap.forEach(doc => {
-            const data = doc.data();
-            auctionsHtml += `
-                <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                    <h3 class="font-bold">${data.title}</h3>
-                    <p>الرقم: ${data.number}</p>
-                    <p>أعلى عرض: ${data.currentBid}</p>
-                    <p>الحالة: ${data.status}</p>
-                    <button onclick="deleteAuction('${doc.id}')" class="bg-red-500 text-white px-2 py-1 rounded-lg mt-2 hover:bg-red-600">حذف</button>
-                </div>
-            `;
-        });
-        document.getElementById('auctionsListAdmin').innerHTML = auctionsHtml || '<p>لا توجد مزادات</p>';
+        if (auctionsSnap.empty) {
+            document.getElementById('auctionsListAdmin').innerHTML = '<p class="text-gray-500 p-4">لا توجد مزادات</p>';
+        } else {
+            let auctionsHtml = '';
+            auctionsSnap.forEach(doc => {
+                const data = doc.data();
+                auctionsHtml += `
+                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <h3 class="font-bold">${data.title}</h3>
+                        <p>الرقم: ${data.number}</p>
+                        <p>أعلى عرض: ${data.currentBid}</p>
+                        <p>الحالة: ${data.status}</p>
+                        <button onclick="deleteAuction('${doc.id}')" class="bg-red-500 text-white px-2 py-1 rounded-lg mt-2 hover:bg-red-600">حذف</button>
+                    </div>
+                `;
+            });
+            document.getElementById('auctionsListAdmin').innerHTML = auctionsHtml;
+        }
 
         // المستخدمين
         const usersSnap = await db.collection('users').get();
-        let usersHtml = '<table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-right">الاسم</th><th class="px-6 py-3 text-right">البريد</th><th class="px-6 py-3 text-right">الهاتف</th><th class="px-6 py-3 text-right">الدور</th><th class="px-6 py-3 text-right">تغيير الصلاحية</th></tr></thead><tbody>';
-        usersSnap.forEach(doc => {
-            const data = doc.data();
-            usersHtml += `<tr><td class="px-6 py-4">${data.name}</td><td class="px-6 py-4">${data.email}</td><td class="px-6 py-4">${data.phone}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded-full ${data.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}">${data.role}</span></td><td class="px-6 py-4"><button onclick="toggleRole('${doc.id}', '${data.role}')" class="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600">تبديل</button></td></tr>`;
-        });
-        usersHtml += '</tbody></table>';
-        document.getElementById('usersList').innerHTML = usersHtml || '<p>لا يوجد مستخدمون</p>';
+        if (usersSnap.empty) {
+            document.getElementById('usersList').innerHTML = '<p class="text-gray-500 p-4">لا يوجد مستخدمون</p>';
+        } else {
+            let usersHtml = '<table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-right">الاسم</th><th class="px-6 py-3 text-right">البريد</th><th class="px-6 py-3 text-right">الهاتف</th><th class="px-6 py-3 text-right">الدور</th><th class="px-6 py-3 text-right">تغيير الصلاحية</th></tr></thead><tbody>';
+            usersSnap.forEach(doc => {
+                const data = doc.data();
+                usersHtml += `<tr><td class="px-6 py-4">${data.name}</td><td class="px-6 py-4">${data.email}</td><td class="px-6 py-4">${data.phone || ''}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded-full ${data.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}">${data.role}</span></td><td class="px-6 py-4"><button onclick="toggleRole('${doc.id}', '${data.role}')" class="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600">تبديل</button></td></tr>`;
+            });
+            usersHtml += '</tbody></table>';
+            document.getElementById('usersList').innerHTML = usersHtml;
+        }
     }
 
     async function approveNumber(id) {
