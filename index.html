@@ -26,9 +26,7 @@
             <i class="fas fa-crown text-yellow-300"></i> 7AKM Number
         </a>
         <div class="flex items-center gap-4">
-            <!-- روابط إضافية تظهر للمستخدم -->
             <div id="navLinks" class="flex gap-3"></div>
-            <!-- حالة المستخدم / زر الدخول والتسجيل -->
             <div id="userInfo" class="flex items-center gap-3"></div>
         </div>
     </div>
@@ -39,7 +37,6 @@
 
     <!-- الصفحة الرئيسية -->
     <div id="homePage" class="page active">
-        <!-- الهيدر -->
         <div class="gradient-bg text-white rounded-2xl shadow-xl p-8 mb-8 text-center">
             <h1 class="text-4xl font-bold mb-2">مرحباً بك في <span class="text-yellow-300">7AKM Number</span></h1>
             <p class="text-xl">منصة حاكم نمبر لبيع وشراء وتبديل الأرقام الافتراضية</p>
@@ -102,12 +99,17 @@
         <p class="mt-2 text-center">
             <a href="#" onclick="showPage('resetRequest')" class="text-indigo-600">نسيت كلمة المرور؟</a>
         </p>
+        <!-- رسالة تذكير للمالك -->
+        <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-800">
+            <i class="fas fa-info-circle ml-1"></i> لتسجيل الدخول كمالك، استخدم:
+            <br><span class="font-mono">mohamed_el7akm@akmnumbers.com</span>
+        </div>
     </div>
 
     <!-- صفحة التسجيل -->
     <div id="registerPage" class="page max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
         <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <i class="fas fa-user-plus text-green-600"></i> إنشاء حساب جديد
+            <i class="fas fa-user-plus text-green-600"></i> إنشاء حساب جديد (مستخدم عادي)
         </h2>
         <div id="registerError" class="bg-red-100 text-red-700 p-3 rounded-lg mb-4 hidden"></div>
         <form onsubmit="register(event)">
@@ -116,7 +118,7 @@
             <input type="password" id="regPassword" placeholder="كلمة المرور" class="w-full p-3 border rounded-lg mb-4" required>
             <input type="tel" id="regPhone" placeholder="رقم التواصل" class="w-full p-3 border rounded-lg mb-6" required>
             <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold">
-                تسجيل
+                تسجيل كمستخدم عادي
             </button>
         </form>
         <p class="mt-4 text-center">
@@ -251,7 +253,7 @@
 </footer>
 
 <script>
-    // تهيئة Firebase
+    // ---------- تهيئة Firebase ----------
     const firebaseConfig = {
         apiKey: "AIzaSyAZIdGz-GWzEKfAaLu2mEqle54NpJE7lmg",
         authDomain: "akmnumbers.firebaseapp.com",
@@ -265,7 +267,7 @@
     const auth = firebase.auth();
     const db = firebase.firestore();
 
-    // بيانات المالك
+    // ---------- بيانات المالك ----------
     const OWNER_EMAIL = "mohamed_el7akm@akmnumbers.com";
     const OWNER_PASSWORD = "G7#vQ2mL9@xT4pZ!cR8yH3wD";
 
@@ -289,7 +291,6 @@
             const userDoc = await db.collection('users').doc(user.uid).get();
             currentUserRole = userDoc.exists ? userDoc.data().role : 'user';
 
-            // روابط إضافية للمستخدم
             let links = '';
             if (currentUserRole === 'admin') {
                 links += `<a href="#" onclick="showPage('admin')" class="hover:text-yellow-300 transition"><i class="fas fa-crown ml-1"></i> لوحة التحكم</a>`;
@@ -312,7 +313,6 @@
             currentUserRole = 'user';
         }
 
-        // تحديث المحتوى حسب الصفحة الظاهرة
         if (document.getElementById('homePage').classList.contains('active')) {
             loadNumbers();
             loadAuctions();
@@ -326,7 +326,7 @@
         auth.signOut().then(() => showPage('home'));
     }
 
-    // تسجيل الدخول (مع إنشاء المالك تلقائياً)
+    // ---------- تسجيل الدخول (مع إنشاء المالك تلقائياً) ----------
     async function login(e) {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
@@ -337,8 +337,20 @@
         try {
             let userCredential;
             try {
+                // محاولة تسجيل الدخول
                 userCredential = await auth.signInWithEmailAndPassword(email, password);
+                
+                // إذا كان البريد هو بريد المالك، تأكد من أن صلاحيته admin
+                if (email === OWNER_EMAIL && password === OWNER_PASSWORD) {
+                    const userRef = db.collection('users').doc(userCredential.user.uid);
+                    const userDoc = await userRef.get();
+                    if (userDoc.exists && userDoc.data().role !== 'admin') {
+                        await userRef.update({ role: 'admin' });
+                        console.log('تمت ترقية المالك إلى admin');
+                    }
+                }
             } catch (signInError) {
+                // إذا كان المستخدم غير موجود وكانت بيانات المالك صحيحة، قم بإنشائه كـ admin
                 if (signInError.code === 'auth/user-not-found' && email === OWNER_EMAIL && password === OWNER_PASSWORD) {
                     userCredential = await auth.createUserWithEmailAndPassword(email, password);
                     await db.collection('users').doc(userCredential.user.uid).set({
@@ -359,7 +371,7 @@
         }
     }
 
-    // تسجيل مستخدم عادي
+    // ---------- تسجيل مستخدم عادي ----------
     async function register(e) {
         e.preventDefault();
         const name = document.getElementById('regName').value;
@@ -381,7 +393,7 @@
         }
     }
 
-    // نشر رقم
+    // ---------- نشر رقم ----------
     async function postNumber(e) {
         e.preventDefault();
         if (!currentUser) return alert('يجب تسجيل الدخول أولاً');
@@ -405,7 +417,7 @@
         }
     }
 
-    // تحميل الأرقام المقبولة
+    // ---------- تحميل الأرقام المقبولة ----------
     async function loadNumbers() {
         const filter = document.getElementById('platformFilter').value;
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
@@ -439,7 +451,7 @@
         if (container.innerHTML === '') container.innerHTML = '<p class="text-gray-500 col-span-4 text-center py-8">لا توجد نتائج</p>';
     }
 
-    // تحميل المزادات النشطة
+    // ---------- تحميل المزادات النشطة ----------
     async function loadAuctions() {
         const snapshot = await db.collection('auctions').where('status', '==', 'active').get();
         const container = document.getElementById('auctionsList');
@@ -462,7 +474,7 @@
         if (container.innerHTML === '') container.innerHTML = '<p class="text-gray-500 col-span-3 text-center py-8">لا توجد مزادات نشطة</p>';
     }
 
-    // عرض صفحة مزاد
+    // ---------- عرض صفحة مزاد معين ----------
     async function viewAuction(auctionId) {
         currentAuctionId = auctionId;
         showPage('auction');
@@ -515,7 +527,7 @@
         loadBids(currentAuctionId);
     }
 
-    // دوال المشرف
+    // ---------- دوال المشرف ----------
     async function loadAdminData() {
         // طلبات استعادة كلمة المرور
         const resetSnap = await db.collection('resetRequests').where('status', '==', 'pending').get();
@@ -617,7 +629,7 @@
         loadAdminData();
     }
 
-    // طلب استعادة كلمة المرور
+    // ---------- طلب استعادة كلمة المرور ----------
     async function resetRequest(e) {
         e.preventDefault();
         const email = document.getElementById('resetEmail').value;
