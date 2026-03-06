@@ -1,258 +1,358 @@
+```html
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes">
     <title>7AKM Number | حاكم نمبر</title>
     <!-- Tailwind & Font Awesome -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <!-- Firebase -->
+    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-messaging-compat.js"></script>
     <style>
         .page { display: none; }
         .page.active { display: block; }
         .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .message-bubble {
+            max-width: 85%;
+            padding: 10px 15px;
+            border-radius: 20px;
+            margin-bottom: 10px;
+            word-wrap: break-word;
+        }
+        .message-sent {
+            background-color: #dcf8c6;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+        .message-received {
+            background-color: #fff;
+            border: 1px solid #e5e7eb;
+        }
+        .vip-badge {
+            background: gold;
+            color: black;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+        .rating-star {
+            color: #fbbf24;
+            margin-left: 2px;
+        }
+        .whatsapp-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background-color: #25D366;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            font-size: 0.9rem;
+        }
+        .whatsapp-link:hover {
+            background-color: #128C7E;
+        }
+        .responsive-table {
+            overflow-x: auto;
+            display: block;
+            width: 100%;
+        }
+        .responsive-table table {
+            min-width: 600px;
+        }
+        /* تحسين شريط التنقل للهاتف */
+        @media (max-width: 640px) {
+            nav .container {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            nav .container > div:first-child {
+                margin-bottom: 0.5rem;
+                justify-content: center;
+            }
+            nav .container > div:last-child {
+                justify-content: center;
+            }
+            #navLinks, #userInfo {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-gray-100 font-sans antialiased">
 
 <!-- شريط التنقل -->
 <nav class="gradient-bg text-white shadow-lg sticky top-0 z-50">
-    <div class="container mx-auto px-4 py-3 flex justify-between items-center">
-        <a href="#" onclick="showPage('home')" class="text-2xl font-bold flex items-center gap-2">
+    <div class="container mx-auto px-3 sm:px-4 py-2 sm:py-3 flex flex-wrap justify-between items-center">
+        <a href="#" onclick="showPage('home')" class="text-xl sm:text-2xl font-bold flex items-center gap-2">
             <i class="fas fa-crown text-yellow-300"></i> 7AKM Number
         </a>
-        <div class="flex items-center gap-4">
-            <div id="navLinks" class="flex gap-3"></div>
-            <div id="userInfo" class="flex items-center gap-3"></div>
+        <div class="flex items-center gap-2 sm:gap-4">
+            <div id="navLinks" class="flex flex-wrap gap-1 sm:gap-3 text-sm sm:text-base"></div>
+            <div id="userInfo" class="flex items-center gap-1 sm:gap-3 text-sm sm:text-base"></div>
         </div>
     </div>
 </nav>
 
 <!-- الصفحات -->
-<main class="container mx-auto px-4 py-6">
+<main class="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
 
     <!-- الصفحة الرئيسية -->
     <div id="homePage" class="page active">
-        <div class="gradient-bg text-white rounded-2xl shadow-xl p-8 mb-8 text-center">
-            <h1 class="text-4xl font-bold mb-2">مرحباً بك في <span class="text-yellow-300">7AKM Number</span></h1>
-            <p class="text-xl">منصة حاكم نمبر لبيع وشراء وتبديل الأرقام الافتراضية</p>
+        <div class="gradient-bg text-white rounded-2xl shadow-xl p-4 sm:p-8 mb-6 sm:mb-8 text-center">
+            <h1 class="text-2xl sm:text-4xl font-bold mb-2">مرحباً بك في <span class="text-yellow-300">7AKM Number</span></h1>
+            <p class="text-base sm:text-xl">أول منصة وساطة آمنة مع سمعة المستخدمين وإشعارات فورية</p>
+        </div>
+
+        <!-- دعوة واضحة للتسجيل للمستخدمين غير المسجلين (تظهر فقط إذا لم يكن مسجلاً) -->
+        <div id="guestPrompt" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6 text-center hidden">
+            <p class="text-lg font-semibold text-gray-800">مرحباً بك في 7AKM Number!</p>
+            <p class="text-gray-600 mb-3">للاستفادة من جميع الخدمات (نشر الأرقام، المشاركة في المزادات، الدردشة) يرجى تسجيل الدخول أو إنشاء حساب جديد.</p>
+            <div class="flex flex-col sm:flex-row justify-center gap-3">
+                <a href="#" onclick="showPage('login')" class="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition">تسجيل الدخول</a>
+                <a href="#" onclick="showPage('register')" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition">إنشاء حساب</a>
+            </div>
         </div>
 
         <!-- فلتر وبحث -->
-        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <i class="fas fa-search text-indigo-600"></i> ابحث عن رقم
-            </h2>
-            <div class="flex flex-wrap gap-4 items-end">
-                <div class="flex-1 min-w-[200px]">
+        <div class="bg-white rounded-lg shadow-lg p-4 sm:p-6 mb-6 sm:mb-8">
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 items-end">
+                <div class="w-full sm:flex-1">
                     <label class="block text-sm font-medium text-gray-700 mb-1">المنصة</label>
-                    <select id="platformFilter" onchange="loadNumbers()" class="w-full p-3 border border-gray-300 rounded-lg">
+                    <select id="platformFilter" onchange="loadNumbers()" class="w-full p-2 sm:p-3 border border-gray-300 rounded-lg text-sm">
                         <option value="">الكل</option>
                         <option value="WhatsApp">واتساب</option>
                         <option value="Telegram">تليجرام</option>
                         <option value="TikTok">تيك توك</option>
                     </select>
                 </div>
-                <div class="flex-1 min-w-[200px]">
-                    <label class="block text-sm font-medium text-gray-700 mb-1">كلمة البحث</label>
-                    <input type="text" id="searchInput" placeholder="رقم أو وصف" class="w-full p-3 border border-gray-300 rounded-lg">
+                <div class="w-full sm:flex-1">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">بحث</label>
+                    <input type="text" id="searchInput" placeholder="رقم أو وصف" class="w-full p-2 sm:p-3 border border-gray-300 rounded-lg text-sm">
                 </div>
-                <button onclick="loadNumbers()" class="bg-indigo-600 text-white px-8 py-3 rounded-lg hover:bg-indigo-700 font-semibold">
-                    <i class="fas fa-search ml-2"></i> بحث
-                </button>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <label class="flex items-center text-sm">
+                        <input type="checkbox" id="vipFilter" onchange="loadNumbers()" class="ml-2"> VIP فقط
+                    </label>
+                    <button onclick="loadNumbers()" class="bg-indigo-600 text-white px-4 sm:px-8 py-2 sm:py-3 rounded-lg hover:bg-indigo-700 font-semibold text-sm w-full sm:w-auto">
+                        <i class="fas fa-search ml-1"></i> بحث
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- المزادات النشطة -->
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <i class="fas fa-gavel text-yellow-600"></i> مزادات نشطة
-        </h2>
-        <div id="auctionsList" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12"></div>
-
         <!-- الأرقام المتاحة -->
-        <h2 class="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        <h2 class="text-xl sm:text-2xl font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
             <i class="fas fa-phone-alt text-green-600"></i> أرقام للبيع والتبديل
         </h2>
-        <div id="numbersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"></div>
+        <div id="numbersList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8 sm:mb-12"></div>
+
+        <!-- المزادات النشطة -->
+        <h2 class="text-xl sm:text-2xl font-semibold text-gray-800 mb-3 sm:mb-4 flex items-center gap-2">
+            <i class="fas fa-gavel text-yellow-600"></i> مزادات نشطة
+        </h2>
+        <div id="auctionsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6"></div>
     </div>
 
     <!-- صفحة تسجيل الدخول -->
-    <div id="loginPage" class="page max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <i class="fas fa-sign-in-alt text-indigo-600"></i> تسجيل الدخول
-        </h2>
+    <div id="loginPage" class="page max-w-md mx-auto bg-white rounded-xl shadow-lg p-4 sm:p-8">
+        <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">تسجيل الدخول</h2>
         <div id="loginError" class="bg-red-100 text-red-700 p-3 rounded-lg mb-4 hidden"></div>
         <form onsubmit="login(event)">
-            <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" class="w-full p-3 border rounded-lg mb-4" required>
-            <input type="password" id="loginPassword" placeholder="كلمة المرور" class="w-full p-3 border rounded-lg mb-6" required>
-            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-semibold">
-                دخول
-            </button>
+            <input type="email" id="loginEmail" placeholder="البريد الإلكتروني" class="w-full p-3 border rounded-lg mb-3 sm:mb-4 text-sm" required>
+            <input type="password" id="loginPassword" placeholder="كلمة المرور" class="w-full p-3 border rounded-lg mb-4 sm:mb-6 text-sm" required>
+            <button type="submit" class="w-full bg-indigo-600 text-white py-3 rounded-lg text-sm sm:text-base">دخول</button>
         </form>
-        <p class="mt-4 text-center">
+        <p class="mt-4 text-center text-sm">
             <a href="#" onclick="showPage('register')" class="text-indigo-600">ليس لديك حساب؟ سجل الآن</a>
         </p>
-        <p class="mt-2 text-center">
-            <a href="#" onclick="showPage('resetRequest')" class="text-indigo-600">نسيت كلمة المرور؟</a>
-        </p>
-        <!-- زر إنشاء المالك (يظهر فقط إذا لم يكن هناك أي مستخدم) -->
         <div id="ownerSetupContainer" class="mt-4 hidden">
             <hr class="my-4">
-            <p class="text-sm text-gray-600 mb-2">لأول مرة فقط: قم بإنشاء حساب المالك</p>
-            <button onclick="setupOwner()" class="w-full bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 font-semibold">
+            <button onclick="setupOwner()" class="w-full bg-purple-600 text-white py-2 rounded-lg text-sm">
                 <i class="fas fa-crown ml-2"></i> إنشاء حساب المالك
             </button>
         </div>
     </div>
 
-    <!-- صفحة التسجيل (للمستخدمين العاديين) -->
-    <div id="registerPage" class="page max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <i class="fas fa-user-plus text-green-600"></i> إنشاء حساب جديد (مستخدم عادي)
-        </h2>
+    <!-- صفحة التسجيل -->
+    <div id="registerPage" class="page max-w-md mx-auto bg-white rounded-xl shadow-lg p-4 sm:p-8">
+        <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">إنشاء حساب جديد</h2>
         <div id="registerError" class="bg-red-100 text-red-700 p-3 rounded-lg mb-4 hidden"></div>
         <form onsubmit="register(event)">
-            <input type="text" id="regName" placeholder="الاسم الكامل" class="w-full p-3 border rounded-lg mb-4" required>
-            <input type="email" id="regEmail" placeholder="البريد الإلكتروني" class="w-full p-3 border rounded-lg mb-4" required>
-            <input type="password" id="regPassword" placeholder="كلمة المرور" class="w-full p-3 border rounded-lg mb-4" required>
-            <input type="tel" id="regPhone" placeholder="رقم التواصل" class="w-full p-3 border rounded-lg mb-6" required>
-            <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 font-semibold">
-                تسجيل كمستخدم عادي
-            </button>
+            <input type="text" id="regName" placeholder="الاسم الكامل" class="w-full p-3 border rounded-lg mb-3 text-sm" required>
+            <input type="email" id="regEmail" placeholder="البريد الإلكتروني" class="w-full p-3 border rounded-lg mb-3 text-sm" required>
+            <input type="password" id="regPassword" placeholder="كلمة المرور" class="w-full p-3 border rounded-lg mb-3 text-sm" required>
+            <input type="tel" id="regPhone" placeholder="رقم التواصل" class="w-full p-3 border rounded-lg mb-3 text-sm" required>
+            <input type="text" id="regReferral" placeholder="كود الإحالة (اختياري)" class="w-full p-3 border rounded-lg mb-4 text-sm">
+            <button type="submit" class="w-full bg-green-600 text-white py-3 rounded-lg text-sm sm:text-base">تسجيل</button>
         </form>
-        <p class="mt-4 text-center">
+        <p class="mt-4 text-center text-sm">
             <a href="#" onclick="showPage('login')" class="text-indigo-600">لديك حساب؟ سجل دخول</a>
         </p>
     </div>
 
     <!-- صفحة نشر رقم -->
-    <div id="postPage" class="page max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <i class="fas fa-upload text-blue-600"></i> نشر رقم جديد
-        </h2>
+    <div id="postPage" class="page max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-4 sm:p-8">
+        <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">نشر رقم جديد</h2>
         <form onsubmit="postNumber(event)">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-gray-700 mb-2">الرقم</label>
-                    <input type="text" id="postNumber" class="w-full p-3 border rounded-lg" required>
-                </div>
-                <div>
-                    <label class="block text-gray-700 mb-2">نوع الرقم</label>
-                    <input type="text" id="postType" placeholder="مميز، عادي..." class="w-full p-3 border rounded-lg" required>
-                </div>
-                <div>
-                    <label class="block text-gray-700 mb-2">المنصة</label>
-                    <select id="postPlatform" class="w-full p-3 border rounded-lg">
-                        <option value="WhatsApp">واتساب</option>
-                        <option value="Telegram">تليجرام</option>
-                        <option value="TikTok">تيك توك</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-gray-700 mb-2">نوع العرض</label>
-                    <div class="flex gap-4 pt-2">
-                        <label><input type="radio" name="saleType" value="sale" checked> للبيع</label>
-                        <label><input type="radio" name="saleType" value="exchange"> للتبديل</label>
-                    </div>
-                </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div><label class="text-sm">الرقم</label><input type="text" id="postNumber" class="w-full p-3 border rounded-lg text-sm" required></div>
+                <div><label class="text-sm">نوع الرقم</label><input type="text" id="postType" class="w-full p-3 border rounded-lg text-sm" required></div>
+                <div><label class="text-sm">المنصة</label><select id="postPlatform" class="w-full p-3 border rounded-lg text-sm"><option value="WhatsApp">واتساب</option><option value="Telegram">تليجرام</option><option value="TikTok">تيك توك</option></select></div>
+                <div><label class="text-sm">نوع العرض</label><div class="flex gap-4 pt-2 text-sm"><label><input type="radio" name="saleType" value="sale" checked> للبيع</label><label><input type="radio" name="saleType" value="exchange"> للتبديل</label></div></div>
             </div>
-            <div class="mt-4" id="priceField">
-                <label class="block text-gray-700 mb-2">السعر (إذا كان للبيع)</label>
-                <input type="number" id="postPrice" class="w-full p-3 border rounded-lg">
+            <div class="mt-3 sm:mt-4"><label class="text-sm">السعر (إذا كان للبيع)</label><input type="number" id="postPrice" class="w-full p-3 border rounded-lg text-sm"></div>
+            <div class="mt-3 sm:mt-4"><label class="text-sm">الوصف</label><textarea id="postDescription" rows="3" class="w-full p-3 border rounded-lg text-sm"></textarea></div>
+            <div class="mt-3 sm:mt-4 flex items-center">
+                <input type="checkbox" id="postIsVip" class="ml-2"> <label class="text-sm">رقم VIP (سيظهر بنجمة ذهبية)</label>
             </div>
-            <div class="mt-4">
-                <label class="block text-gray-700 mb-2">الوصف</label>
-                <textarea id="postDescription" rows="4" class="w-full p-3 border rounded-lg"></textarea>
-            </div>
-            <button type="submit" class="mt-6 w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold">
-                إرسال للنشر
-            </button>
+            <button type="submit" class="mt-4 sm:mt-6 w-full bg-blue-600 text-white py-3 rounded-lg text-sm sm:text-base">إرسال للنشر</button>
         </form>
     </div>
 
-    <!-- صفحة طلب استعادة كلمة المرور -->
-    <div id="resetRequestPage" class="page max-w-md mx-auto bg-white rounded-xl shadow-lg p-8">
-        <h2 class="text-2xl font-bold text-gray-800 mb-6">استعادة كلمة المرور</h2>
-        <div id="resetMessage" class="bg-green-100 text-green-700 p-3 rounded-lg mb-4 hidden"></div>
-        <form onsubmit="resetRequest(event)">
-            <input type="email" id="resetEmail" placeholder="البريد الإلكتروني" class="w-full p-3 border rounded-lg mb-6" required>
-            <button type="submit" class="w-full bg-yellow-600 text-white py-3 rounded-lg hover:bg-yellow-700 font-semibold">
-                إرسال الطلب للإدارة
-            </button>
-        </form>
-        <p class="mt-4 text-center">
-            <a href="#" onclick="showPage('login')" class="text-indigo-600">العودة لتسجيل الدخول</a>
-        </p>
+    <!-- صفحة الدردشات -->
+    <div id="chatsPage" class="page">
+        <h1 class="text-xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2">
+            <i class="fas fa-comments text-blue-600"></i> محادثاتي
+        </h1>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+            <!-- قائمة المحادثات -->
+            <div class="bg-white rounded-xl shadow-lg p-3 sm:p-4 h-[400px] sm:h-[600px] overflow-y-auto">
+                <h2 class="font-semibold text-lg sm:text-xl mb-3 sm:mb-4">المحادثات</h2>
+                <div id="conversationsList" class="space-y-2"></div>
+            </div>
+            <!-- نافذة الدردشة -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-3 sm:p-4 h-[400px] sm:h-[600px] flex flex-col">
+                <div id="chatHeader" class="border-b pb-2 mb-3 sm:mb-4 font-bold text-base sm:text-lg"></div>
+                <div id="messagesContainer" class="flex-1 overflow-y-auto mb-3 sm:mb-4 p-2 flex flex-col"></div>
+                <form id="messageForm" onsubmit="sendMessage(event)" class="flex gap-2">
+                    <input type="text" id="messageInput" placeholder="اكتب رسالتك..." class="flex-1 p-2 sm:p-3 border rounded-lg text-sm" required>
+                    <button type="submit" class="bg-indigo-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-indigo-700">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- صفحة تفاصيل الرقم -->
+    <div id="numberDetailsPage" class="page max-w-4xl mx-auto">
+        <div class="bg-white rounded-xl shadow-lg p-4 sm:p-8">
+            <div id="numberDetails"></div>
+            <div class="mt-4 flex gap-2">
+                <button id="reportButton" onclick="reportNumber()" class="bg-red-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-red-700 text-sm">
+                    <i class="fas fa-flag ml-1"></i> الإبلاغ
+                </button>
+            </div>
+            <div id="buySection" class="mt-4 sm:mt-6 p-4 bg-gray-50 rounded-lg border"></div>
+        </div>
     </div>
 
     <!-- صفحة المزاد -->
-    <div id="auctionPage" class="page">
-        <div class="bg-white rounded-xl shadow-lg p-8">
-            <h1 id="auctionTitle" class="text-3xl font-bold text-gray-800 mb-4"></h1>
-            <div id="auctionDetails" class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-6 rounded-lg mb-6"></div>
-
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">تقديم عرض</h2>
+    <div id="auctionPage" class="page max-w-4xl mx-auto">
+        <div class="bg-white rounded-xl shadow-lg p-4 sm:p-8">
+            <h1 id="auctionTitle" class="text-xl sm:text-3xl font-bold text-gray-800 mb-4"></h1>
+            <div id="auctionDetails" class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg mb-4 sm:mb-6"></div>
+            <h2 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4">تقديم عرض</h2>
             <div id="bidError" class="bg-red-100 text-red-700 p-3 rounded-lg mb-4 hidden"></div>
-            <form onsubmit="placeBid(event)" class="flex gap-4 mb-8">
-                <input type="number" id="bidAmount" placeholder="مبلغ العرض" class="flex-1 p-3 border rounded-lg" required>
-                <button type="submit" class="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 font-semibold">
-                    تقديم
-                </button>
+            <form onsubmit="placeBid(event)" class="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-8">
+                <input type="number" id="bidAmount" placeholder="مبلغ العرض" class="flex-1 p-3 border rounded-lg text-sm" required>
+                <button type="submit" class="bg-green-600 text-white px-4 sm:px-8 py-3 rounded-lg hover:bg-green-700 text-sm">تقديم</button>
             </form>
-
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">العروض الحالية</h2>
+            <h2 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4">العروض الحالية</h2>
             <ul id="bidsList" class="divide-y divide-gray-200"></ul>
         </div>
     </div>
 
-    <!-- لوحة تحكم المشرف -->
+    <!-- صفحة طلب استعادة كلمة المرور -->
+    <div id="resetRequestPage" class="page max-w-md mx-auto bg-white rounded-xl shadow-lg p-4 sm:p-8">
+        <h2 class="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">استعادة كلمة المرور</h2>
+        <div id="resetMessage" class="bg-green-100 text-green-700 p-3 rounded-lg mb-4 hidden"></div>
+        <form onsubmit="resetRequest(event)">
+            <input type="email" id="resetEmail" placeholder="البريد الإلكتروني" class="w-full p-3 border rounded-lg mb-4 sm:mb-6 text-sm" required>
+            <button type="submit" class="w-full bg-yellow-600 text-white py-3 rounded-lg text-sm">إرسال الطلب للإدارة</button>
+        </form>
+        <p class="mt-4 text-center text-sm">
+            <a href="#" onclick="showPage('login')" class="text-indigo-600">العودة لتسجيل الدخول</a>
+        </p>
+    </div>
+
+    <!-- لوحة تحكم المشرف (كاملة بكل الأقسام) -->
     <div id="adminPage" class="page">
-        <h1 class="text-3xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+        <h1 class="text-xl sm:text-3xl font-bold text-gray-800 mb-4 sm:mb-6 flex items-center gap-2">
             <i class="fas fa-crown text-yellow-500"></i> لوحة تحكم المشرف
         </h1>
 
         <!-- طلبات استعادة كلمة المرور -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">طلبات استعادة كلمة المرور</h2>
-            <div id="resetRequestsList" class="overflow-x-auto"></div>
+        <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-8">
+            <h2 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4">طلبات استعادة كلمة المرور</h2>
+            <div id="resetRequestsList" class="responsive-table"></div>
         </div>
 
         <!-- منشورات بانتظار الموافقة -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">منشورات بانتظار الموافقة</h2>
-            <div id="pendingNumbersList" class="space-y-4"></div>
+        <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-8">
+            <h2 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4">منشورات بانتظار الموافقة</h2>
+            <div id="pendingNumbersList" class="space-y-3"></div>
         </div>
 
         <!-- إدارة المزادات -->
-        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">إدارة المزادات</h2>
-            <form onsubmit="addAuction(event)" class="bg-gray-50 p-6 rounded-lg mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input type="text" id="auctionTitleInput" placeholder="عنوان المزاد" class="p-3 border rounded-lg" required>
-                <input type="text" id="auctionNumber" placeholder="الرقم" class="p-3 border rounded-lg" required>
-                <input type="number" id="auctionStartingBid" placeholder="السعر المبدئي" class="p-3 border rounded-lg" required>
-                <input type="datetime-local" id="auctionEndTime" class="p-3 border rounded-lg" required>
-                <button type="submit" class="md:col-span-2 bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700 font-semibold">
-                    إضافة مزاد
-                </button>
+        <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-8">
+            <h2 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4">إدارة المزادات</h2>
+            <form onsubmit="addAuction(event)" class="bg-gray-50 p-4 rounded-lg mb-4 sm:mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input type="text" id="auctionTitleInput" placeholder="عنوان المزاد" class="p-3 border rounded-lg text-sm" required>
+                <input type="text" id="auctionNumber" placeholder="الرقم" class="p-3 border rounded-lg text-sm" required>
+                <input type="number" id="auctionStartingBid" placeholder="السعر المبدئي" class="p-3 border rounded-lg text-sm" required>
+                <input type="datetime-local" id="auctionEndTime" class="p-3 border rounded-lg text-sm" required>
+                <button type="submit" class="sm:col-span-2 bg-indigo-600 text-white py-3 rounded-lg text-sm">إضافة مزاد</button>
             </form>
-            <div id="auctionsListAdmin" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+            <div id="auctionsListAdmin" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
         </div>
 
-        <!-- جميع المستخدمين -->
-        <div class="bg-white rounded-xl shadow-lg p-6">
-            <h2 class="text-2xl font-semibold text-gray-800 mb-4">جميع المستخدمين</h2>
-            <div id="usersList" class="overflow-x-auto"></div>
+        <!-- جميع المستخدمين مع السمعة والإحالة -->
+        <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-8">
+            <h2 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4">جميع المستخدمين</h2>
+            <div id="usersList" class="responsive-table"></div>
+        </div>
+
+        <!-- البلاغات -->
+        <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-8">
+            <h2 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4">البلاغات على الأرقام</h2>
+            <div id="reportsList" class="space-y-3"></div>
+        </div>
+
+        <!-- سجل النشاطات -->
+        <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6 mb-4 sm:mb-8">
+            <h2 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4">سجل النشاطات</h2>
+            <div id="activityLogList" class="responsive-table"></div>
+        </div>
+
+        <!-- المعاملات المالية -->
+        <div class="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+            <h2 class="text-lg sm:text-2xl font-semibold mb-3 sm:mb-4">المعاملات المالية</h2>
+            <div id="transactionsList" class="responsive-table"></div>
         </div>
     </div>
 </main>
 
-<!-- تذييل -->
-<footer class="gradient-bg text-white text-center py-4 mt-8">
-    <p>جميع الحقوق محفوظة &copy; 2026 7AKM Number | حاكم نمبر</p>
+<!-- تذييل مع رابط قناة واتساب -->
+<footer class="gradient-bg text-white text-center py-4 sm:py-4 mt-6 sm:mt-8">
+    <div class="container mx-auto flex flex-col items-center gap-2 sm:gap-3 px-3">
+        <p class="text-sm sm:text-base">جميع الحقوق محفوظة &copy; 2026 7AKM Number</p>
+        <a href="https://whatsapp.com/channel/0029VbClggt5a23z2Ih8RH2A" target="_blank" class="whatsapp-link text-sm sm:text-base">
+            <i class="fab fa-whatsapp fa-lg"></i>
+            تابع قناتنا على واتساب
+        </a>
+    </div>
 </footer>
 
 <script>
@@ -268,63 +368,43 @@
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
     const db = firebase.firestore();
+    const messaging = firebase.messaging();
+
+    // ---------- بيانات المالك والمحفظة ----------
+    const OWNER_EMAIL = "mohamed_el7akm@akmnumbers.com";
+    const OWNER_PASSWORD = "G7#vQ2mL9@xT4pZ!cR8yH3wD";
+    const OWNER_WALLET = "UQAegnn5ZDSGTBdPWiY4uFLpt9jZvSJIUNvsmtWlPBMll2Qn";
 
     let currentUser = null;
     let currentUserRole = 'user';
     let currentAuctionId = null;
+    let currentConversationId = null;
+    let currentNumberId = null;
 
-    // ---------- التحقق من وجود مستخدمين (لإظهار زر إنشاء المالك) ----------
-    async function checkForExistingUsers() {
-        const snapshot = await db.collection('users').limit(1).get();
-        const container = document.getElementById('ownerSetupContainer');
-        if (snapshot.empty) {
-            container.classList.remove('hidden');
-        } else {
-            container.classList.add('hidden');
-        }
-    }
-
-    // ---------- إنشاء حساب المالك ----------
-    async function setupOwner() {
-        const email = prompt("أدخل البريد الإلكتروني للمالك:", "mohamed_el7akm@akmnumbers.com");
-        if (!email) return;
-        const password = prompt("أدخل كلمة المرور للمالك:", "G7#vQ2mL9@xT4pZ!cR8yH3wD");
-        if (!password) return;
-        const name = prompt("أدخل اسم المالك:", "Mohamed El7akm");
-        if (!name) return;
-
-        try {
-            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-            await db.collection('users').doc(userCredential.user.uid).set({
-                name: name,
-                email: email,
-                phone: "",
-                role: "admin",
-                createdAt: new Date()
-            });
-            alert("✅ تم إنشاء حساب المالك بنجاح! يمكنك الآن تسجيل الدخول.");
-            checkForExistingUsers();
-        } catch (error) {
-            alert("❌ خطأ: " + error.message);
-        }
-    }
+    // دوال التحقق من الصحة
+    function sanitizeString(str) { return str.replace(/[<>]/g, ''); }
+    function isValidNumber(str) { return /^[0-9+\-\s]{5,20}$/.test(str); }
+    function isValidType(str) { return /^[\u0600-\u06FF\s\w]{2,50}$/.test(str); }
+    function isValidPlatform(p) { return ['WhatsApp', 'Telegram', 'TikTok'].includes(p); }
+    function isValidPrice(price) { return price >= 0 && price <= 1000000; }
 
     // ---------- إظهار الصفحات ----------
-    function showPage(pageName) {
+    function showPage(pageName, param) {
         document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
         document.getElementById(pageName + 'Page').classList.add('active');
-        if (pageName === 'login') {
-            checkForExistingUsers();
-        } else if (pageName === 'admin' && currentUserRole === 'admin') {
-            loadAdminData();
-        }
+        if (pageName === 'login') checkForExistingUsers();
+        else if (pageName === 'admin' && currentUserRole === 'admin') loadAdminData();
+        else if (pageName === 'chats') loadConversations();
+        else if (pageName === 'numberDetails' && param) { currentNumberId = param; loadNumberDetails(param); }
+        else if (pageName === 'auction' && param) { currentAuctionId = param; loadAuction(param); }
     }
 
-    // ---------- مراقب حالة المصادقة ----------
+    // ---------- مراقب المصادقة ----------
     auth.onAuthStateChanged(async (user) => {
         currentUser = user;
         const navLinks = document.getElementById('navLinks');
         const userInfo = document.getElementById('userInfo');
+        const guestPrompt = document.getElementById('guestPrompt');
 
         if (user) {
             const userDoc = await db.collection('users').doc(user.uid).get();
@@ -335,28 +415,29 @@
                 links += `<a href="#" onclick="showPage('admin')" class="hover:text-yellow-300 transition"><i class="fas fa-crown ml-1"></i> لوحة التحكم</a>`;
             }
             links += `<a href="#" onclick="showPage('post')" class="hover:text-yellow-300 transition"><i class="fas fa-upload ml-1"></i> نشر رقم</a>`;
+            links += `<a href="#" onclick="showPage('chats')" class="hover:text-yellow-300 transition"><i class="fas fa-comments ml-1"></i> المحادثات</a>`;
             navLinks.innerHTML = links;
 
             userInfo.innerHTML = `
-                <span class="text-sm">${user.email}</span>
-                <button onclick="logout()" class="bg-red-500 px-3 py-1 rounded-lg text-sm hover:bg-red-600 transition">
+                <span class="text-xs sm:text-sm truncate max-w-[100px] sm:max-w-none">${user.email}</span>
+                <button onclick="logout()" class="bg-red-500 px-2 sm:px-3 py-1 rounded-lg text-xs sm:text-sm hover:bg-red-600 transition">
                     <i class="fas fa-sign-out-alt ml-1"></i> خروج
                 </button>
             `;
+            if (guestPrompt) guestPrompt.classList.add('hidden');
         } else {
             navLinks.innerHTML = '';
             userInfo.innerHTML = `
-                <a href="#" onclick="showPage('login')" class="hover:text-yellow-300 transition"><i class="fas fa-sign-in-alt ml-1"></i> دخول</a>
-                <a href="#" onclick="showPage('register')" class="hover:text-yellow-300 transition"><i class="fas fa-user-plus ml-1"></i> تسجيل</a>
+                <a href="#" onclick="showPage('login')" class="hover:text-yellow-300 transition text-xs sm:text-sm"><i class="fas fa-sign-in-alt ml-1"></i> دخول</a>
+                <a href="#" onclick="showPage('register')" class="hover:text-yellow-300 transition text-xs sm:text-sm"><i class="fas fa-user-plus ml-1"></i> تسجيل</a>
             `;
             currentUserRole = 'user';
+            if (guestPrompt) guestPrompt.classList.remove('hidden');
         }
 
         if (document.getElementById('homePage').classList.contains('active')) {
             loadNumbers();
             loadAuctions();
-        } else if (document.getElementById('adminPage').classList.contains('active') && currentUserRole === 'admin') {
-            loadAdminData();
         }
     });
 
@@ -365,7 +446,37 @@
         auth.signOut().then(() => showPage('home'));
     }
 
-    // ---------- تسجيل الدخول العادي ----------
+    // ---------- التحقق من وجود مستخدمين ----------
+    async function checkForExistingUsers() {
+        const snapshot = await db.collection('users').limit(1).get();
+        document.getElementById('ownerSetupContainer').classList.toggle('hidden', !snapshot.empty);
+    }
+
+    // ---------- إنشاء حساب المالك ----------
+    async function setupOwner() {
+        const email = prompt("البريد الإلكتروني للمالك:", OWNER_EMAIL);
+        const password = prompt("كلمة المرور:", OWNER_PASSWORD);
+        const name = prompt("اسم المالك:", "Mohamed El7akm");
+        if (!email || !password || !name) return;
+        try {
+            const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+            await db.collection('users').doc(userCredential.user.uid).set({
+                name, email, role: 'admin', createdAt: new Date(),
+                rating: 5,
+                referralCode: generateReferralCode(),
+                points: 0
+            });
+            await logActivity('admin_created', { uid: userCredential.user.uid });
+            alert('✅ تم إنشاء حساب المالك');
+        } catch (error) { alert('❌ ' + error.message); }
+    }
+
+    // ---------- توليد كود إحالة عشوائي ----------
+    function generateReferralCode() {
+        return 'REF' + Math.random().toString(36).substring(2, 10).toUpperCase();
+    }
+
+    // ---------- تسجيل الدخول ----------
     async function login(e) {
         e.preventDefault();
         const email = document.getElementById('loginEmail').value;
@@ -382,113 +493,236 @@
         }
     }
 
-    // ---------- تسجيل مستخدم عادي ----------
+    // ---------- تسجيل مستخدم عادي مع إحالة ----------
     async function register(e) {
         e.preventDefault();
         const name = document.getElementById('regName').value;
         const email = document.getElementById('regEmail').value;
         const password = document.getElementById('regPassword').value;
         const phone = document.getElementById('regPhone').value;
+        const referral = document.getElementById('regReferral').value.trim();
         const errorDiv = document.getElementById('registerError');
         errorDiv.classList.add('hidden');
 
         try {
             const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-            await db.collection('users').doc(userCredential.user.uid).set({
-                name, email, phone, role: 'user', createdAt: new Date()
+            const user = userCredential.user;
+            await user.sendEmailVerification();
+
+            const referralCode = generateReferralCode();
+            let points = 0;
+            if (referral) {
+                const referrerSnap = await db.collection('users').where('referralCode', '==', referral).get();
+                if (!referrerSnap.empty) {
+                    const referrerId = referrerSnap.docs[0].id;
+                    await db.collection('users').doc(referrerId).update({
+                        points: firebase.firestore.FieldValue.increment(10)
+                    });
+                    points = 5;
+                    await logActivity('referral_used', { referrer: referrerId, newUser: user.uid });
+                }
+            }
+
+            await db.collection('users').doc(user.uid).set({
+                name, email, phone, role: 'user', createdAt: new Date(),
+                rating: 0,
+                referralCode: referralCode,
+                points: points,
+                emailVerified: false,
+                lastPostTime: null,
+                dailyPostCount: 0,
+                lastPostDate: null
             });
             showPage('home');
+            alert('تم التسجيل! يرجى تأكيد بريدك الإلكتروني لتفعيل النشر والمزايدة.');
         } catch (error) {
             errorDiv.innerText = error.message;
             errorDiv.classList.remove('hidden');
         }
     }
 
-    // ---------- نشر رقم ----------
+    // ---------- التحقق من البريد الإلكتروني قبل النشر ----------
+    async function checkEmailVerified() {
+        if (!currentUser) return false;
+        await currentUser.reload();
+        return currentUser.emailVerified;
+    }
+
+    // ---------- نشر رقم مع حدود يومية ----------
     async function postNumber(e) {
         e.preventDefault();
-        if (!currentUser) return alert('يجب تسجيل الدخول أولاً');
+        if (!currentUser) return alert('يجب تسجيل الدخول');
+        if (!(await checkEmailVerified())) return alert('يجب تأكيد بريدك الإلكتروني أولاً');
 
-        const number = document.getElementById('postNumber').value;
-        const type = document.getElementById('postType').value;
+        const userRef = db.collection('users').doc(currentUser.uid);
+        const userDoc = await userRef.get();
+        const userData = userDoc.data();
+        const today = new Date().toDateString();
+        if (userData.lastPostDate !== today) {
+            await userRef.update({ dailyPostCount: 0, lastPostDate: today });
+        }
+        if (userData.dailyPostCount >= 5) return alert('لقد تجاوزت الحد اليومي للنشر (5 أرقام)');
+
+        const number = sanitizeString(document.getElementById('postNumber').value.trim());
+        const type = sanitizeString(document.getElementById('postType').value.trim());
         const platform = document.getElementById('postPlatform').value;
-        const description = document.getElementById('postDescription').value;
+        const description = sanitizeString(document.getElementById('postDescription').value.trim());
         const isForSale = document.querySelector('input[name="saleType"]:checked').value === 'sale';
-        const price = isForSale ? document.getElementById('postPrice').value : 0;
+        const price = isForSale ? Number(document.getElementById('postPrice').value) : 0;
+        const isVip = document.getElementById('postIsVip').checked;
+
+        if (!isValidNumber(number)) return alert('الرقم غير صالح');
+        if (!isValidType(type)) return alert('نوع الرقم غير صالح');
+        if (!isValidPlatform(platform)) return alert('المنصة غير صالحة');
+        if (isForSale && !isValidPrice(price)) return alert('السعر غير صالح');
 
         try {
             await db.collection('numbers').add({
-                number, type, platform, description, price: Number(price), isForSale,
-                userId: currentUser.uid, status: 'pending', createdByAdmin: false, createdAt: new Date()
+                number, type, platform, description, price, isForSale, isVip,
+                userId: currentUser.uid,
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             });
-            alert('✅ تم إرسال الرقم، بانتظار موافقة الإدارة');
+            await userRef.update({
+                dailyPostCount: firebase.firestore.FieldValue.increment(1),
+                lastPostTime: new Date()
+            });
+            await logActivity('number_posted', { numberId: 'new', userId: currentUser.uid });
+            alert('✅ تم الإرسال للمراجعة');
             showPage('home');
-        } catch (error) {
-            alert('❌ خطأ: ' + error.message);
-        }
+        } catch (error) { alert('❌ ' + error.message); }
     }
 
-    // ---------- تحميل الأرقام المقبولة ----------
+    // ---------- تحميل الأرقام مع فلتر VIP ----------
     async function loadNumbers() {
         const filter = document.getElementById('platformFilter').value;
         const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+        const vipOnly = document.getElementById('vipFilter').checked;
         let query = db.collection('numbers').where('status', '==', 'approved');
         if (filter) query = query.where('platform', '==', filter);
+        if (vipOnly) query = query.where('isVip', '==', true);
         const snapshot = await query.get();
 
         const container = document.getElementById('numbersList');
         container.innerHTML = '';
 
-        snapshot.forEach(doc => {
+        for (const doc of snapshot.docs) {
             const data = doc.data();
-            if (searchTerm && !data.number.includes(searchTerm) && !data.description.toLowerCase().includes(searchTerm)) return;
+            if (searchTerm && !data.number.includes(searchTerm) && !data.description.toLowerCase().includes(searchTerm)) continue;
 
+            const sellerSnap = await db.collection('users').doc(data.userId).get();
+            const sellerName = sellerSnap.exists ? sellerSnap.data().name : 'غير معروف';
+            const sellerRating = sellerSnap.exists ? sellerSnap.data().rating : 0;
+            const stars = '★'.repeat(Math.round(sellerRating)) + '☆'.repeat(5 - Math.round(sellerRating));
+
+            const vipBadge = data.isVip ? '<span class="vip-badge mr-2"><i class="fas fa-star"></i> VIP</span>' : '';
             const badge = data.isForSale 
-                ? `<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full"><i class="fas fa-tag ml-1"></i> للبيع: ${data.price}</span>`
+                ? `<span class="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full"><i class="fas fa-tag ml-1"></i> ${data.price}</span>`
                 : `<span class="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full"><i class="fas fa-exchange-alt ml-1"></i> للتبديل</span>`;
 
             container.innerHTML += `
-                <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 border border-gray-100">
-                    <div class="flex justify-between items-start mb-3">
-                        <span class="font-bold text-lg text-indigo-700">${data.number}</span>
+                <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition p-4 border border-gray-100">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-bold text-base sm:text-lg text-indigo-700 break-all">${data.number} ${vipBadge}</span>
                         ${badge}
                     </div>
-                    <p class="text-gray-600 mb-2"><i class="fas fa-tachometer-alt ml-1 text-gray-400"></i> ${data.type}</p>
-                    <p class="text-gray-600 mb-2"><i class="fab fa-${data.platform === 'WhatsApp' ? 'whatsapp' : (data.platform === 'Telegram' ? 'telegram' : 'tiktok')} ml-1 text-gray-400"></i> ${data.platform}</p>
-                    <p class="text-gray-500 text-sm border-t pt-2 mt-2">${data.description}</p>
+                    <p class="text-gray-600 mb-1 text-sm"><i class="fas fa-tachometer-alt ml-1"></i> ${data.type}</p>
+                    <p class="text-gray-600 mb-1 text-sm"><i class="fab fa-${data.platform === 'WhatsApp' ? 'whatsapp' : (data.platform === 'Telegram' ? 'telegram' : 'tiktok')} ml-1"></i> ${data.platform}</p>
+                    <p class="text-gray-500 text-xs border-t pt-2 mt-2">${data.description}</p>
+                    <div class="mt-3 flex items-center gap-1 text-xs">
+                        <span class="text-gray-600">البائع: ${sellerName}</span>
+                        <span class="rating-star">${stars}</span>
+                    </div>
+                    <div class="mt-3 flex flex-wrap gap-2">
+                        <button onclick="showPage('numberDetails', '${doc.id}')" class="flex-1 bg-indigo-600 text-white px-2 py-1 sm:px-3 sm:py-2 rounded-lg hover:bg-indigo-700 text-xs sm:text-sm">
+                            <i class="fas fa-info-circle ml-1"></i> تفاصيل
+                        </button>
+                        ${data.isForSale ? `
+                            <button onclick="buyNumber('${doc.id}')" class="flex-1 bg-green-600 text-white px-2 py-1 sm:px-3 sm:py-2 rounded-lg hover:bg-green-700 text-xs sm:text-sm">
+                                <i class="fas fa-shopping-cart ml-1"></i> شراء
+                            </button>
+                        ` : `
+                            <button onclick="startConversation('${data.userId}', '${doc.id}')" class="flex-1 bg-blue-600 text-white px-2 py-1 sm:px-3 sm:py-2 rounded-lg hover:bg-blue-700 text-xs sm:text-sm">
+                                <i class="fas fa-comment ml-1"></i> تواصل
+                            </button>
+                        `}
+                    </div>
                 </div>
             `;
-        });
-        if (container.innerHTML === '') container.innerHTML = '<p class="text-gray-500 col-span-4 text-center py-8">لا توجد نتائج</p>';
+        }
+        if (container.innerHTML === '') container.innerHTML = '<p class="col-span-4 text-center py-8 text-gray-500">لا توجد نتائج</p>';
     }
 
-    // ---------- تحميل المزادات النشطة ----------
+    // ---------- تحميل المزادات ----------
     async function loadAuctions() {
         const snapshot = await db.collection('auctions').where('status', '==', 'active').get();
         const container = document.getElementById('auctionsList');
         container.innerHTML = '';
-
         snapshot.forEach(doc => {
             const data = doc.data();
             container.innerHTML += `
-                <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition p-5 border border-gray-100">
-                    <h3 class="font-bold text-xl text-purple-700 mb-2">${data.title}</h3>
-                    <p class="text-gray-600 mb-1"><i class="fas fa-phone ml-1"></i> ${data.number}</p>
-                    <p class="text-gray-600 mb-1"><i class="fas fa-gavel ml-1"></i> أعلى عرض: ${data.currentBid || data.startingBid}</p>
-                    <p class="text-gray-500 text-sm mb-3">ينتهي: ${new Date(data.endTime).toLocaleString()}</p>
-                    <a href="#" onclick="viewAuction('${doc.id}')" class="inline-block bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition">
+                <div class="bg-white rounded-xl shadow-md hover:shadow-lg transition p-4 border border-gray-100">
+                    <h3 class="font-bold text-base sm:text-xl text-purple-700 mb-2">${data.title}</h3>
+                    <p class="text-gray-600 mb-1 text-sm"><i class="fas fa-phone ml-1"></i> ${data.number}</p>
+                    <p class="text-gray-600 mb-1 text-sm"><i class="fas fa-gavel ml-1"></i> أعلى عرض: ${data.currentBid || data.startingBid}</p>
+                    <p class="text-gray-500 text-xs mb-3">ينتهي: ${new Date(data.endTime).toLocaleString()}</p>
+                    <a href="#" onclick="showPage('auction', '${doc.id}')" class="inline-block bg-purple-600 text-white px-3 py-1 sm:px-4 sm:py-2 rounded-lg hover:bg-purple-700 transition text-xs sm:text-sm">
                         <i class="fas fa-hand-paper ml-2"></i> شارك
                     </a>
                 </div>
             `;
         });
-        if (container.innerHTML === '') container.innerHTML = '<p class="text-gray-500 col-span-3 text-center py-8">لا توجد مزادات نشطة</p>';
+        if (container.innerHTML === '') container.innerHTML = '<p class="col-span-3 text-center py-8 text-gray-500">لا توجد مزادات نشطة</p>';
     }
 
-    // ---------- عرض صفحة مزاد معين ----------
-    async function viewAuction(auctionId) {
-        currentAuctionId = auctionId;
-        showPage('auction');
+    // ---------- تحميل بيانات رقم معين ----------
+    async function loadNumberDetails(numberId) {
+        const docSnap = await db.collection('numbers').doc(numberId).get();
+        const data = docSnap.data();
+        const sellerSnap = await db.collection('users').doc(data.userId).get();
+        const seller = sellerSnap.data();
+
+        const transSnap = await db.collection('transactions')
+            .where('numberId', '==', numberId)
+            .where('buyerId', '==', currentUser?.uid)
+            .where('status', '==', 'pending')
+            .get();
+
+        let transactionHtml = '';
+        if (!transSnap.empty) {
+            const trans = transSnap.docs[0].data();
+            transactionHtml = `
+                <div class="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                    <h3 class="font-bold text-lg mb-2">⏳ طلب شراء قيد الانتظار</h3>
+                    <p>المبلغ: ${trans.amount}</p>
+                    <p>عنوان المحفظة للدفع: <span class="font-mono text-sm">${trans.walletAddress}</span></p>
+                    <p class="mt-2 text-sm">بعد التحويل، يرجى إرسال إشعار للمالك عبر الدردشة.</p>
+                </div>
+            `;
+        }
+
+        document.getElementById('numberDetails').innerHTML = `
+            <h1 class="text-2xl sm:text-3xl font-bold mb-4">${data.number}</h1>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-gray-50 p-4 sm:p-6 rounded-lg">
+                <div><span class="font-semibold">النوع:</span> ${data.type}</div>
+                <div><span class="font-semibold">المنصة:</span> ${data.platform}</div>
+                <div><span class="font-semibold">السعر:</span> ${data.price}</div>
+                <div><span class="font-semibold">البائع:</span> ${seller?.name || 'غير معروف'}</div>
+                <div class="col-span-1 sm:col-span-2"><span class="font-semibold">الوصف:</span> ${data.description}</div>
+            </div>
+        `;
+        document.getElementById('buySection').innerHTML = transactionHtml || `
+            <div class="text-center">
+                <p class="mb-4">لشراء هذا الرقم، سيتم إنشاء طلب شراء وسيط.</p>
+                <button onclick="buyNumber('${numberId}')" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
+                    <i class="fas fa-shopping-cart ml-2"></i> تأكيد الشراء
+                </button>
+            </div>
+        `;
+    }
+
+    // ---------- تحميل بيانات مزاد معين ----------
+    async function loadAuction(auctionId) {
         const docSnap = await db.collection('auctions').doc(auctionId).get();
         const data = docSnap.data();
         document.getElementById('auctionTitle').innerText = data.title;
@@ -508,9 +742,9 @@
         list.innerHTML = '';
         snapshot.forEach(doc => {
             const bid = doc.data();
-            list.innerHTML += `<li class="py-3 flex justify-between"><span class="font-semibold">${bid.bidAmount}</span> <span class="text-gray-500">${new Date(bid.timestamp?.toDate()).toLocaleString()}</span></li>`;
+            list.innerHTML += `<li class="py-2 sm:py-3 flex justify-between text-sm"><span class="font-semibold">${bid.bidAmount}</span> <span class="text-gray-500">${new Date(bid.timestamp?.toDate()).toLocaleString()}</span></li>`;
         });
-        if (list.innerHTML === '') list.innerHTML = '<li class="text-gray-500 py-4">لا توجد عروض بعد</li>';
+        if (list.innerHTML === '') list.innerHTML = '<li class="text-gray-500 py-4 text-sm">لا توجد عروض بعد</li>';
     }
 
     async function placeBid(e) {
@@ -538,41 +772,232 @@
         loadBids(currentAuctionId);
     }
 
+    // ---------- نظام الشراء عبر الوساطة ----------
+    async function buyNumber(numberId) {
+        if (!currentUser) return alert('يجب تسجيل الدخول أولاً');
+        const numberDoc = await db.collection('numbers').doc(numberId).get();
+        const numberData = numberDoc.data();
+        if (!numberData.isForSale) return alert('هذا الرقم ليس للبيع');
+
+        const transaction = {
+            numberId,
+            buyerId: currentUser.uid,
+            sellerId: numberData.userId,
+            amount: numberData.price,
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            walletAddress: OWNER_WALLET
+        };
+        const transRef = await db.collection('transactions').add(transaction);
+        await logActivity('purchase_initiated', { transactionId: transRef.id, numberId });
+
+        const conversationId = await getOrCreateConversation(currentUser.uid, numberData.userId, numberId);
+        showPage('numberDetails', numberId);
+        alert(`✅ تم إنشاء طلب شراء. يرجى تحويل المبلغ (${numberData.price}) إلى المحفظة التالية:\n${OWNER_WALLET}\n\nبعد التحويل، تواصل مع البائع عبر الدردشة.`);
+    }
+
+    // ---------- الإبلاغ عن رقم ----------
+    async function reportNumber() {
+        if (!currentUser) return alert('يجب تسجيل الدخول');
+        if (!currentNumberId) return;
+        const reason = prompt('لماذا تبلغ عن هذا الرقم؟', 'رقم غير مناسب');
+        if (!reason) return;
+        await db.collection('reports').add({
+            numberId: currentNumberId,
+            reporterId: currentUser.uid,
+            reason: sanitizeString(reason),
+            status: 'pending',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        await logActivity('number_reported', { numberId: currentNumberId, userId: currentUser.uid });
+        alert('✅ تم إرسال البلاغ، شكراً لك');
+    }
+
+    // ---------- نظام السمعة (التقييم) ----------
+    async function rateUser(userId, rating) {
+        if (!currentUser || currentUser.uid === userId) return;
+        if (rating < 1 || rating > 5) return;
+        await db.collection('ratings').add({
+            fromUserId: currentUser.uid,
+            toUserId: userId,
+            rating: rating,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        const ratingsSnap = await db.collection('ratings').where('toUserId', '==', userId).get();
+        let total = 0;
+        ratingsSnap.forEach(d => total += d.data().rating);
+        const average = total / ratingsSnap.size;
+        await db.collection('users').doc(userId).update({ rating: average });
+        await logActivity('user_rated', { from: currentUser.uid, to: userId, rating });
+    }
+
+    // ---------- إشعارات FCM ----------
+    async function requestNotificationPermission() {
+        try {
+            await messaging.requestPermission();
+            const token = await messaging.getToken();
+            console.log('FCM Token:', token);
+            if (currentUser) {
+                await db.collection('users').doc(currentUser.uid).update({
+                    fcmToken: token
+                });
+            }
+        } catch (err) {
+            console.log('فشل الحصول على إذن الإشعارات', err);
+        }
+    }
+
+    messaging.onMessage((payload) => {
+        console.log('رسالة واردة: ', payload);
+        alert(payload.notification.title + '\n' + payload.notification.body);
+    });
+
+    // ---------- سجل النشاطات ----------
+    async function logActivity(action, details) {
+        if (!currentUser) return;
+        await db.collection('activityLog').add({
+            userId: currentUser.uid,
+            action,
+            details,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+
+    // ---------- نظام الإحالة (عرض كود المستخدم) ----------
+    async function showReferralInfo() {
+        if (!currentUser) return;
+        const userDoc = await db.collection('users').doc(currentUser.uid).get();
+        const data = userDoc.data();
+        alert(`كود الإحالة الخاص بك: ${data.referralCode}\nنقاطك: ${data.points}`);
+    }
+
+    // ---------- دوال الدردشة ----------
+    async function getOrCreateConversation(user1, user2, numberId = null) {
+        const q = db.collection('conversations')
+            .where('participants', 'array-contains', user1)
+            .get();
+        const snap = await q;
+        let conversation = snap.docs.find(d => d.data().participants.includes(user2));
+        if (conversation) return conversation.id;
+        const newConv = {
+            participants: [user1, user2],
+            numberId: numberId,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            lastMessage: null,
+            lastMessageTime: null
+        };
+        const ref = await db.collection('conversations').add(newConv);
+        return ref.id;
+    }
+
+    async function startConversation(otherUserId, numberId = null) {
+        if (!currentUser) return alert('سجل دخول أولاً');
+        const convId = await getOrCreateConversation(currentUser.uid, otherUserId, numberId);
+        showPage('chats');
+        setTimeout(() => loadConversations(convId), 500);
+    }
+
+    async function loadConversations(selectConvId = null) {
+        if (!currentUser) return;
+        const q = db.collection('conversations')
+            .where('participants', 'array-contains', currentUser.uid)
+            .orderBy('lastMessageTime', 'desc');
+        const snap = await q.get();
+        const list = document.getElementById('conversationsList');
+        list.innerHTML = '';
+        for (const doc of snap.docs) {
+            const data = doc.data();
+            const otherId = data.participants.find(id => id !== currentUser.uid);
+            const userDoc = await db.collection('users').doc(otherId).get();
+            const userName = userDoc.exists ? userDoc.data().name : 'مستخدم ' + otherId.substring(0,6);
+            list.innerHTML += `
+                <div class="p-2 sm:p-3 border rounded-lg cursor-pointer hover:bg-gray-100 text-sm ${selectConvId === doc.id ? 'bg-indigo-100' : ''}"
+                     onclick="loadMessages('${doc.id}')">
+                    <div class="font-semibold truncate">${userName}</div>
+                    <div class="text-xs text-gray-500 truncate">${data.lastMessage || 'لا توجد رسائل'}</div>
+                </div>
+            `;
+        }
+        if (selectConvId) loadMessages(selectConvId);
+    }
+
+    async function loadMessages(conversationId) {
+        currentConversationId = conversationId;
+        const messagesSnap = await db.collection('conversations').doc(conversationId)
+            .collection('messages').orderBy('timestamp').get();
+        const container = document.getElementById('messagesContainer');
+        const header = document.getElementById('chatHeader');
+        const convDoc = await db.collection('conversations').doc(conversationId).get();
+        const convData = convDoc.data();
+        const otherId = convData.participants.find(id => id !== currentUser.uid);
+        const userDoc = await db.collection('users').doc(otherId).get();
+        header.innerText = userDoc.exists ? userDoc.data().name : 'محادثة';
+        container.innerHTML = '';
+        messagesSnap.forEach(doc => {
+            const msg = doc.data();
+            const div = document.createElement('div');
+            div.className = `message-bubble text-sm ${msg.senderId === currentUser.uid ? 'message-sent' : 'message-received'}`;
+            div.innerText = msg.text;
+            container.appendChild(div);
+        });
+        container.scrollTop = container.scrollHeight;
+    }
+
+    async function sendMessage(e) {
+        e.preventDefault();
+        if (!currentConversationId || !currentUser) return;
+        const text = document.getElementById('messageInput').value.trim();
+        if (!text) return;
+        const msg = {
+            senderId: currentUser.uid,
+            text: sanitizeString(text),
+            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        await db.collection('conversations').doc(currentConversationId)
+            .collection('messages').add(msg);
+        await db.collection('conversations').doc(currentConversationId).update({
+            lastMessage: text,
+            lastMessageTime: new Date()
+        });
+        document.getElementById('messageInput').value = '';
+        loadMessages(currentConversationId);
+    }
+
     // ---------- دوال المشرف ----------
     async function loadAdminData() {
         // طلبات استعادة كلمة المرور
         const resetSnap = await db.collection('resetRequests').where('status', '==', 'pending').get();
-        let resetHtml = '';
-        if (resetSnap.empty) {
-            resetHtml = '<p class="text-gray-500 p-4">لا توجد طلبات استعادة كلمة مرور</p>';
-        } else {
-            resetHtml = '<table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-right">البريد</th><th class="px-6 py-3 text-right">الجهاز</th><th class="px-6 py-3 text-right">إجراء</th></tr></thead><tbody>';
+        let resetHtml = '<div class="responsive-table">';
+        if (resetSnap.empty) resetHtml += '<p class="text-gray-500">لا توجد طلبات</p>';
+        else {
+            resetHtml += '<table class="min-w-full"><thead class="bg-gray-50"><tr><th class="p-2 text-right">البريد</th><th class="p-2 text-right">الجهاز</th><th class="p-2 text-right">إجراء</th></tr></thead><tbody>';
             resetSnap.forEach(doc => {
                 const data = doc.data();
-                resetHtml += `<tr><td class="px-6 py-4">${data.email}</td><td class="px-6 py-4">${data.deviceInfo.substring(0,30)}...</td><td class="px-6 py-4"><button onclick="approveReset('${doc.id}', '${data.email}')" class="bg-green-500 text-white px-3 py-1 rounded-lg hover:bg-green-600">موافقة</button></td></tr>`;
+                resetHtml += `<tr><td class="p-2">${data.email}</td><td class="p-2 text-sm">${data.deviceInfo.substring(0,30)}...</td><td class="p-2"><button onclick="approveReset('${doc.id}', '${data.email}')" class="bg-green-500 text-white px-2 py-1 rounded text-xs">موافقة</button></td></tr>`;
             });
             resetHtml += '</tbody></table>';
         }
+        resetHtml += '</div>';
         document.getElementById('resetRequestsList').innerHTML = resetHtml;
 
         // المنشورات المعلقة
         const pendingSnap = await db.collection('numbers').where('status', '==', 'pending').get();
         if (pendingSnap.empty) {
-            document.getElementById('pendingNumbersList').innerHTML = '<p class="text-gray-500 p-4">لا توجد منشورات معلقة</p>';
+            document.getElementById('pendingNumbersList').innerHTML = '<p class="text-gray-500">لا توجد منشورات معلقة</p>';
         } else {
             let pendingHtml = '';
             pendingSnap.forEach(doc => {
                 const data = doc.data();
                 pendingHtml += `
-                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200 flex flex-wrap justify-between items-center">
-                        <div>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200 flex flex-wrap justify-between items-center">
+                        <div class="text-sm">
                             <p><span class="font-semibold">الرقم:</span> ${data.number} | <span class="font-semibold">المنصة:</span> ${data.platform} | <span class="font-semibold">النوع:</span> ${data.type}</p>
-                            <p class="text-sm">${data.description}</p>
+                            <p class="text-xs">${data.description}</p>
                             <p class="text-xs text-gray-400">المستخدم: ${data.userId}</p>
                         </div>
                         <div class="flex gap-2 mt-2 sm:mt-0">
-                            <button onclick="approveNumber('${doc.id}')" class="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600">موافقة</button>
-                            <button onclick="rejectNumber('${doc.id}')" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600">رفض</button>
+                            <button onclick="approveNumber('${doc.id}')" class="bg-green-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-green-600">موافقة</button>
+                            <button onclick="rejectNumber('${doc.id}')" class="bg-red-500 text-white px-3 py-1 rounded-lg text-xs hover:bg-red-600">رفض</button>
                         </div>
                     </div>
                 `;
@@ -583,52 +1008,119 @@
         // المزادات (جميعها)
         const auctionsSnap = await db.collection('auctions').get();
         if (auctionsSnap.empty) {
-            document.getElementById('auctionsListAdmin').innerHTML = '<p class="text-gray-500 p-4">لا توجد مزادات</p>';
+            document.getElementById('auctionsListAdmin').innerHTML = '<p class="text-gray-500">لا توجد مزادات</p>';
         } else {
             let auctionsHtml = '';
             auctionsSnap.forEach(doc => {
                 const data = doc.data();
                 auctionsHtml += `
-                    <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                        <h3 class="font-bold">${data.title}</h3>
-                        <p>الرقم: ${data.number}</p>
-                        <p>أعلى عرض: ${data.currentBid}</p>
-                        <p>الحالة: ${data.status}</p>
-                        <button onclick="deleteAuction('${doc.id}')" class="bg-red-500 text-white px-2 py-1 rounded-lg mt-2 hover:bg-red-600">حذف</button>
+                    <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                        <h3 class="font-bold text-sm">${data.title}</h3>
+                        <p class="text-xs">الرقم: ${data.number}</p>
+                        <p class="text-xs">أعلى عرض: ${data.currentBid}</p>
+                        <p class="text-xs mb-2">الحالة: ${data.status}</p>
+                        <button onclick="deleteAuction('${doc.id}')" class="bg-red-500 text-white px-2 py-1 rounded-lg text-xs hover:bg-red-600">حذف</button>
                     </div>
                 `;
             });
             document.getElementById('auctionsListAdmin').innerHTML = auctionsHtml;
         }
 
-        // المستخدمين
+        // المستخدمين مع السمعة والإحالة
         const usersSnap = await db.collection('users').get();
-        if (usersSnap.empty) {
-            document.getElementById('usersList').innerHTML = '<p class="text-gray-500 p-4">لا يوجد مستخدمون</p>';
+        let usersHtml = '<div class="responsive-table"><table class="min-w-full"><thead class="bg-gray-50"><tr><th class="p-2 text-right">الاسم</th><th class="p-2 text-right">البريد</th><th class="p-2 text-right">الدور</th><th class="p-2 text-right">التقييم</th><th class="p-2 text-right">النقاط</th><th class="p-2 text-right">كود الإحالة</th><th class="p-2 text-right">تغيير</th></tr></thead><tbody>';
+        usersSnap.forEach(doc => {
+            const data = doc.data();
+            const stars = '★'.repeat(Math.round(data.rating || 0)) + '☆'.repeat(5 - Math.round(data.rating || 0));
+            usersHtml += `<tr class="text-sm">
+                <td class="p-2">${data.name}</td>
+                <td class="p-2">${data.email}</td>
+                <td class="p-2">${data.role}</td>
+                <td class="p-2"><span class="rating-star">${stars}</span> (${data.rating?.toFixed(1) || 0})</td>
+                <td class="p-2">${data.points || 0}</td>
+                <td class="p-2">${data.referralCode || ''}</td>
+                <td class="p-2"><button onclick="toggleRole('${doc.id}', '${data.role}')" class="bg-yellow-500 text-white px-2 py-1 rounded text-xs">تبديل</button></td>
+            </tr>`;
+        });
+        usersHtml += '</tbody></table></div>';
+        document.getElementById('usersList').innerHTML = usersHtml;
+
+        // البلاغات
+        const reportsSnap = await db.collection('reports').where('status', '==', 'pending').get();
+        if (reportsSnap.empty) {
+            document.getElementById('reportsList').innerHTML = '<p class="text-gray-500">لا توجد بلاغات</p>';
         } else {
-            let usersHtml = '<table class="min-w-full divide-y divide-gray-200"><thead class="bg-gray-50"><tr><th class="px-6 py-3 text-right">الاسم</th><th class="px-6 py-3 text-right">البريد</th><th class="px-6 py-3 text-right">الهاتف</th><th class="px-6 py-3 text-right">الدور</th><th class="px-6 py-3 text-right">تغيير الصلاحية</th></tr></thead><tbody>';
-            usersSnap.forEach(doc => {
+            let reportsHtml = '';
+            reportsSnap.forEach(doc => {
                 const data = doc.data();
-                usersHtml += `<tr><td class="px-6 py-4">${data.name}</td><td class="px-6 py-4">${data.email}</td><td class="px-6 py-4">${data.phone || ''}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded-full ${data.role === 'admin' ? 'bg-purple-100 text-purple-800' : 'bg-green-100 text-green-800'}">${data.role}</span></td><td class="px-6 py-4"><button onclick="toggleRole('${doc.id}', '${data.role}')" class="bg-yellow-500 text-white px-3 py-1 rounded-lg hover:bg-yellow-600">تبديل</button></td></tr>`;
+                reportsHtml += `
+                    <div class="bg-red-50 p-3 rounded-lg border border-red-200 text-sm">
+                        <p><span class="font-semibold">الرقم:</span> ${data.numberId}</p>
+                        <p><span class="font-semibold">المبلغ:</span> ${data.reporterId}</p>
+                        <p><span class="font-semibold">السبب:</span> ${data.reason}</p>
+                        <button onclick="resolveReport('${doc.id}')" class="mt-2 bg-green-600 text-white px-3 py-1 rounded text-xs">تم المراجعة</button>
+                    </div>
+                `;
             });
-            usersHtml += '</tbody></table>';
-            document.getElementById('usersList').innerHTML = usersHtml;
+            document.getElementById('reportsList').innerHTML = reportsHtml;
         }
+
+        // سجل النشاطات
+        const activitySnap = await db.collection('activityLog').orderBy('timestamp', 'desc').limit(50).get();
+        let activityHtml = '<div class="responsive-table"><table class="min-w-full"><thead class="bg-gray-50"><tr><th class="p-2 text-right">الوقت</th><th class="p-2 text-right">المستخدم</th><th class="p-2 text-right">الإجراء</th><th class="p-2 text-right">التفاصيل</th></tr></thead><tbody>';
+        activitySnap.forEach(doc => {
+            const data = doc.data();
+            const time = data.timestamp?.toDate().toLocaleString() || '';
+            activityHtml += `<tr class="text-xs"><td class="p-2">${time}</td><td class="p-2">${data.userId}</td><td class="p-2">${data.action}</td><td class="p-2">${JSON.stringify(data.details)}</td></tr>`;
+        });
+        activityHtml += '</tbody></table></div>';
+        document.getElementById('activityLogList').innerHTML = activityHtml;
+
+        // المعاملات المالية
+        const transSnap = await db.collection('transactions').orderBy('createdAt', 'desc').get();
+        let transHtml = '<div class="responsive-table"><table class="min-w-full"><thead class="bg-gray-50"><tr><th class="p-2 text-right">الرقم</th><th class="p-2 text-right">المشتري</th><th class="p-2 text-right">البائع</th><th class="p-2 text-right">المبلغ</th><th class="p-2 text-right">الحالة</th><th class="p-2 text-right">إجراء</th></tr></thead><tbody>';
+        transSnap.forEach(doc => {
+            const data = doc.data();
+            transHtml += `
+                <tr class="text-sm">
+                    <td class="p-2">${data.numberId.substring(0,6)}</td>
+                    <td class="p-2">${data.buyerId.substring(0,6)}</td>
+                    <td class="p-2">${data.sellerId.substring(0,6)}</td>
+                    <td class="p-2">${data.amount}</td>
+                    <td class="p-2">${data.status}</td>
+                    <td class="p-2">
+                        ${data.status === 'pending' ? `
+                            <button onclick="completeTransaction('${doc.id}')" class="bg-green-500 text-white px-2 py-1 rounded text-xs">تم الدفع</button>
+                            <button onclick="cancelTransaction('${doc.id}')" class="bg-red-500 text-white px-2 py-1 rounded text-xs">إلغاء</button>
+                        ` : ''}
+                    </td>
+                </tr>
+            `;
+        });
+        transHtml += '</tbody></table></div>';
+        document.getElementById('transactionsList').innerHTML = transHtml;
     }
 
     async function approveNumber(id) {
-        await db.collection('numbers').doc(id).update({ status: 'approved', approvedAt: new Date() });
+        await db.collection('numbers').doc(id).update({ status: 'approved' });
+        await logActivity('number_approved', { numberId: id });
         loadAdminData();
     }
 
     async function rejectNumber(id) {
         await db.collection('numbers').doc(id).delete();
+        await logActivity('number_rejected', { numberId: id });
         loadAdminData();
     }
 
     async function approveReset(id, email) {
         await db.collection('resetRequests').doc(id).update({ status: 'approved' });
         alert(`✅ تمت الموافقة لـ ${email}`);
+        loadAdminData();
+    }
+
+    async function resolveReport(id) {
+        await db.collection('reports').doc(id).update({ status: 'resolved' });
         loadAdminData();
     }
 
@@ -652,9 +1144,26 @@
         }
     }
 
+    async function completeTransaction(transId) {
+        if (confirm('هل تم استلام الدفع فعلاً؟')) {
+            await db.collection('transactions').doc(transId).update({ status: 'completed' });
+            await logActivity('transaction_completed', { transactionId: transId });
+            loadAdminData();
+        }
+    }
+
+    async function cancelTransaction(transId) {
+        if (confirm('إلغاء المعاملة؟')) {
+            await db.collection('transactions').doc(transId).update({ status: 'cancelled' });
+            await logActivity('transaction_cancelled', { transactionId: transId });
+            loadAdminData();
+        }
+    }
+
     async function toggleRole(userId, currentRole) {
         const newRole = currentRole === 'admin' ? 'user' : 'admin';
         await db.collection('users').doc(userId).update({ role: newRole });
+        await logActivity('role_changed', { userId, newRole });
         loadAdminData();
     }
 
@@ -670,7 +1179,14 @@
         document.getElementById('resetEmail').value = '';
     }
 
-    // تحميل البيانات عند بدء الصفحة
+    // ---------- طلب إذن الإشعارات ----------
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            requestNotificationPermission();
+        }
+    });
+
+    // ---------- تحميل أولي ----------
     window.onload = function() {
         loadNumbers();
         loadAuctions();
@@ -678,3 +1194,4 @@
 </script>
 </body>
 </html>
+```
